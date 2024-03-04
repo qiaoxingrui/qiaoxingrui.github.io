@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="keywords" content="Hello World, Java Spring 后端 微服务">
+    <meta name="keywords" content="JS相关, Java Spring 后端 微服务">
     <meta name="description" content="">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -16,7 +16,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
 
 
-    <title>Hello World | 小家猫的笔记</title>
+    <title>JS相关 | 小家猫的笔记</title>
     <link rel="icon" type="image/png" href="/favicon.png">
 
     <link rel="stylesheet" type="text/css" href="/libs/awesome/css/all.css">
@@ -310,12 +310,12 @@
 
 
 
-<div class="bg-cover pd-header post-cover" style="background-image: url('/medias/featureimages/12.jpg')">
+<div class="bg-cover pd-header post-cover" style="background-image: url('/medias/featureimages/20.jpg')">
     <div class="container" style="right: 0px;left: 0px;">
         <div class="row">
             <div class="col s12 m12 l12">
                 <div class="brand">
-                    <h1 class="description center-align post-title">Hello World</h1>
+                    <h1 class="description center-align post-title">JS相关</h1>
                 </div>
             </div>
         </div>
@@ -436,6 +436,15 @@
                 </div>
                 <div class="col s5 right-align">
                     
+                    <div class="post-cate">
+                        <i class="fas fa-bookmark fa-fw icon-category"></i>
+                        
+                            <a href="/categories/java/" class="post-category">
+                                java
+                            </a>
+                        
+                    </div>
+                    
                 </div>
             </div>
 
@@ -443,7 +452,7 @@
                 
                 <div class="post-date info-break-policy">
                     <i class="far fa-calendar-minus fa-fw"></i>发布日期:&nbsp;&nbsp;
-                    2024-03-04
+                    2022-04-19
                 </div>
                 
 
@@ -464,20 +473,26 @@
 
         <div class="card-content article-card-content">
             <div id="articleContent">
-                <p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+                <h2 id="ES6中的let关键字和val关键字声明变量的区别"><a href="#ES6中的let关键字和val关键字声明变量的区别" class="headerlink" title="ES6中的let关键字和val关键字声明变量的区别"></a>ES6中的let关键字和val关键字声明变量的区别</h2><p>var关键字是原生JS中声明变量的关键字，let关键字是ES6语法中新增关键字<br>let关键字声明的变量不能重复声明，var关键字可以重复声明变量<br>let关键字解析变量没有预解析，var关键字声明的变量包含预解析过程<br>let关键字提供了块级作用域，var关键字没有块级作用域，只有局部、全局作用域</p>
+<h2 id="JavaScript中箭头函数与普通函数的区别详解"><a href="#JavaScript中箭头函数与普通函数的区别详解" class="headerlink" title="JavaScript中箭头函数与普通函数的区别详解"></a>JavaScript中箭头函数与普通函数的区别详解</h2><p>J箭头函数：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">let fun = () =&gt; &#123;    console.log(&#x27;lalalala&#x27;);&#125;</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<p>普通函数：</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">function fun() &#123;</span><br><span class="line">    console.log(&#x27;lalla&#x27;);</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>箭头函数相当于匿名函数，并且简化了函数定义。箭头函数有两种格式，一种只包含一个表达式，连{ … }和return都省略掉了。还有一种可以包含多条语句，这时候就不能省略{ … }和return。</p>
+<p><strong>箭头函数是匿名函数，不能作为构造函数，不能使用new</strong></p>
+<p><strong>箭头函数不绑定arguments，取而代之用rest参数…解决</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">function A(a)&#123;</span><br><span class="line">  console.log(arguments);</span><br><span class="line">&#125;</span><br><span class="line">A(1,2,3,4,5,8);  //  [1, 2, 3, 4, 5, 8, callee: ƒ, Symbol(Symbol.iterator): ƒ]</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">let B = (b)=&gt;&#123;</span><br><span class="line">  console.log(arguments);</span><br><span class="line">&#125;</span><br><span class="line">B(2,92,32,32);   // Uncaught ReferenceError: arguments is not defined</span><br><span class="line"></span><br><span class="line"></span><br><span class="line">let C = (...c) =&gt; &#123;</span><br><span class="line">  console.log(c);</span><br><span class="line">&#125;</span><br><span class="line">C(3,82,32,11323);  // [3, 82, 32, 11323]</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<p><strong>箭头函数不绑定this，会捕获其所在的上下文的this值，作为自己的this值</strong></p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br><span class="line">23</span><br><span class="line">24</span><br><span class="line">25</span><br><span class="line">26</span><br><span class="line">27</span><br></pre></td><td class="code"><pre><span class="line">var obj = &#123;</span><br><span class="line">  a: 10,</span><br><span class="line">  b: () =&gt; &#123;</span><br><span class="line">    console.log(this.a); // undefined</span><br><span class="line">    console.log(this); // Window &#123;postMessage: ƒ, blur: ƒ, focus: ƒ, close: ƒ, frames: Window, …&#125;</span><br><span class="line">  &#125;,</span><br><span class="line">  c: function() &#123;</span><br><span class="line">    console.log(this.a); // 10</span><br><span class="line">    console.log(this); // &#123;a: 10, b: ƒ, c: ƒ&#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">obj.b(); </span><br><span class="line">obj.c();</span><br><span class="line"></span><br><span class="line">var obj = &#123;</span><br><span class="line">  a: 10,</span><br><span class="line">  b: function()&#123;</span><br><span class="line">    console.log(this.a); //10</span><br><span class="line">  &#125;,</span><br><span class="line">  c: function() &#123;</span><br><span class="line">     return ()=&gt;&#123;</span><br><span class="line">           console.log(this.a); //10</span><br><span class="line">     &#125;</span><br><span class="line">  &#125;</span><br><span class="line">&#125;</span><br><span class="line">obj.b(); </span><br><span class="line">obj.c()();</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+<p>箭头函数通过 <strong>call()</strong>  或  <strong>apply()</strong> 方法调用一个函数时，只传入了一个参数，对 <strong>this</strong> 并没有影响。</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br></pre></td><td class="code"><pre><span class="line">let obj2 = &#123;</span><br><span class="line">    a: 10,</span><br><span class="line">    b: function(n) &#123;</span><br><span class="line">        let f = (n) =&gt; n + this.a;</span><br><span class="line">        return f(n);</span><br><span class="line">    &#125;,</span><br><span class="line">    c: function(n) &#123;</span><br><span class="line">        let f = (n) =&gt; n + this.a;</span><br><span class="line">        let m = &#123;</span><br><span class="line">            a: 20</span><br><span class="line">        &#125;;</span><br><span class="line">        return f.call(m,n);</span><br><span class="line">    &#125;</span><br><span class="line">&#125;;</span><br><span class="line">console.log(obj2.b(1));  // 11</span><br><span class="line">console.log(obj2.c(1)); // 11</span><br></pre></td></tr></table></figure>
 
+<p>箭头函数没有原型属性</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br></pre></td><td class="code"><pre><span class="line">var a = ()=&gt;&#123;</span><br><span class="line">  return 1;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">function b()&#123;</span><br><span class="line">  return 2;</span><br><span class="line">&#125;</span><br><span class="line"> </span><br><span class="line">console.log(a.prototype);  // undefined</span><br><span class="line">console.log(b.prototype);   // &#123;constructor: ƒ&#125;</span><br></pre></td></tr></table></figure>
                 
             </div>
             <hr/>
@@ -503,7 +518,7 @@
                     </i>
                 </span>
                 <span class="reprint-info">
-                    <a href="https://qiaoxingrui.github.io/2024/03/04/hello-world/">https://qiaoxingrui.github.io/2024/03/04/hello-world/</a>
+                    <a href="https://qiaoxingrui.github.io/2022/04/19/js%E7%9B%B8%E5%85%B3/">https://qiaoxingrui.github.io/2022/04/19/js%E7%9B%B8%E5%85%B3/</a>
                 </span>
             </div>
             <div class="reprint__notice">
@@ -708,18 +723,17 @@
 <article id="prenext-posts" class="prev-next articles">
     <div class="row article-row">
         
-        <div class="article col s12 m6" data-aos="fade-up" data-aos="fade-up">
+        <div class="article col s12 m6" data-aos="fade-up">
             <div class="article-badge left-badge text-color">
-                <i class="far fa-dot-circle"></i>&nbsp;本篇
-            </div>
+                <i class="fas fa-chevron-left"></i>&nbsp;上一篇</div>
             <div class="card">
-                <a href="/2024/03/04/hello-world/">
+                <a href="/2022/04/22/docker%E5%88%A0%E9%99%A4%E9%95%9C%E5%83%8F/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/12.jpg" class="responsive-img" alt="Hello World">
+                        <img src="/medias/featureimages/1.jpg" class="responsive-img" alt="Docker删除&lt;none&gt;镜像">
                         
-                        <span class="card-title">Hello World</span>
+                        <span class="card-title">Docker删除&lt;none&gt;镜像</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -729,18 +743,21 @@
                         
                     </div>
                     <div class="publish-info">
-                            <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2024-03-04
-                            </span>
+                        <span class="publish-date">
+                            <i class="far fa-clock fa-fw icon-date"></i>2022-04-22
+                        </span>
                         <span class="publish-author">
                             
-                            <i class="fas fa-user fa-fw"></i>
-                            小家猫
+                            <i class="fas fa-bookmark fa-fw icon-category"></i>
+                            
+                            <a href="/categories/docker/" class="post-category">
+                                    docker
+                                </a>
+                            
                             
                         </span>
                     </div>
                 </div>
-
                 
             </div>
         </div>
@@ -751,13 +768,13 @@
                 下一篇&nbsp;<i class="fas fa-chevron-right"></i>
             </div>
             <div class="card">
-                <a href="/2022/11/07/mysql5-7%E4%BF%AE%E6%94%B9%E4%B8%8D%E5%8C%BA%E5%88%86%E5%A4%A7%E5%B0%8F%E5%86%99%E5%8A%9F%E8%83%BD%E6%97%A0%E6%95%88/">
+                <a href="/2022/04/19/css%E7%9B%B8%E5%85%B3/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/3.jpg" class="responsive-img" alt="mysql5.7修改不区分大小写功能无效">
+                        <img src="/medias/featureimages/6.jpg" class="responsive-img" alt="CSS相关">
                         
-                        <span class="card-title">mysql5.7修改不区分大小写功能无效</span>
+                        <span class="card-title">CSS相关</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -768,14 +785,14 @@
                     </div>
                     <div class="publish-info">
                             <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2022-11-07
+                                <i class="far fa-clock fa-fw icon-date"></i>2022-04-19
                             </span>
                         <span class="publish-author">
                             
                             <i class="fas fa-bookmark fa-fw icon-category"></i>
                             
-                            <a href="/categories/mysql/" class="post-category">
-                                    mysql
+                            <a href="/categories/java/" class="post-category">
+                                    java
                                 </a>
                             
                             

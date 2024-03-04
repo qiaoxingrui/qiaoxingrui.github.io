@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="keywords" content="Hello World, Java Spring 后端 微服务">
+    <meta name="keywords" content="CSS五种方式实现 Footer 置底（转载）, Java Spring 后端 微服务">
     <meta name="description" content="">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -16,7 +16,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
 
 
-    <title>Hello World | 小家猫的笔记</title>
+    <title>CSS五种方式实现 Footer 置底（转载） | 小家猫的笔记</title>
     <link rel="icon" type="image/png" href="/favicon.png">
 
     <link rel="stylesheet" type="text/css" href="/libs/awesome/css/all.css">
@@ -310,12 +310,12 @@
 
 
 
-<div class="bg-cover pd-header post-cover" style="background-image: url('/medias/featureimages/12.jpg')">
+<div class="bg-cover pd-header post-cover" style="background-image: url('/medias/featureimages/8.jpg')">
     <div class="container" style="right: 0px;left: 0px;">
         <div class="row">
             <div class="col s12 m12 l12">
                 <div class="brand">
-                    <h1 class="description center-align post-title">Hello World</h1>
+                    <h1 class="description center-align post-title">CSS五种方式实现 Footer 置底（转载）</h1>
                 </div>
             </div>
         </div>
@@ -429,12 +429,33 @@
             <div class="row tag-cate">
                 <div class="col s7">
                     
-                          <div class="article-tag">
-                            <span class="chip bg-color">无标签</span>
-                          </div>
+                    <div class="article-tag">
+                        
+                            <a href="/tags/css/">
+                                <span class="chip bg-color">css</span>
+                            </a>
+                        
+                            <a href="/tags/footer/">
+                                <span class="chip bg-color">footer</span>
+                            </a>
+                        
+                    </div>
                     
                 </div>
                 <div class="col s5 right-align">
+                    
+                    <div class="post-cate">
+                        <i class="fas fa-bookmark fa-fw icon-category"></i>
+                        
+                            <a href="/categories/css/" class="post-category">
+                                css
+                            </a>
+                        
+                            <a href="/categories/%E8%BD%AC%E8%BD%BD/" class="post-category">
+                                转载
+                            </a>
+                        
+                    </div>
                     
                 </div>
             </div>
@@ -443,7 +464,7 @@
                 
                 <div class="post-date info-break-policy">
                     <i class="far fa-calendar-minus fa-fw"></i>发布日期:&nbsp;&nbsp;
-                    2024-03-04
+                    2021-10-11
                 </div>
                 
 
@@ -464,19 +485,71 @@
 
         <div class="card-content article-card-content">
             <div id="articleContent">
-                <p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+                <p>页脚置底（Sticky footer）就是让网页的footer部分始终在浏览器窗口的底部。当网页内容足够长以至超出浏览器可视高度时，页脚会随着内容被推到网页底部；但如果网页内容不够长，置底的页脚就会保持在浏览器窗口底部。 <img src="http://api.fly63.com/vue_blog/public/Uploads/20200317/5e702df196feb.jpg">   <strong>1、将内容部分的底部外边距设为负数</strong> 这是个比较主流的用法，把内容部分最小高度设为100%，再利用内容部分的负底部外边距值来达到当高度不满时，页脚保持在窗口底部，当高度超出则随之推出的效果。</p>
+<blockquote>
+<body>
+  <div class="wrapper">
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<p>      content</p>
+<p>    <div class="push"></div><br>  </div><br>  <footer class="footer"></footer></p>
+</body>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>html, body {<br>  height: 100%;<br>  margin: 0;<br>}<br>.wrapper {<br>  min-height: 100%;</p>
+<p>  &#x2F;* 等于footer的高度 *&#x2F;<br>  margin-bottom: -50px;<br>}<br>.footer,<br>.push {<br>  height: 50px;<br>}</p>
+</blockquote>
+<p>这个方法需要容器里有额外的占位元素（如.push） 需要注意的是.wrapper的margin-bottom值需要和.footer的负的height值保持一致，这一点不太友好。   <strong>2、将页脚的顶部外边距设为负数</strong> 既然能在容器上使用负的margin bottom，那能否使用负margin top吗？当然可以。 给内容外增加父元素，并让内容部分的底部内边距与页脚高度的值相等。</p>
+<blockquote>
+<body>
+  <divclass="content"><divclass="content-inside">
+      content
+    </div></div>
+  <footerclass="footer"></footer>
+</body>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<p>html, body {<br>  height: 100%;<br>  margin: 0;<br>}<br>.content {<br>  min-height: 100%;<br>}<br>.content-inside {<br>  padding: 20px;<br>  padding-bottom: 50px;<br>}<br>.footer {<br>  height: 50px;<br>  margin-top: -50px;<br>}</p>
+</blockquote>
+<p>不过这种方法和上一种一样，都需要额外添加不必要的html元素。   <strong>3、使用calc()设置内容高度</strong> 有一种方法不需要任何多余元素——使用CSS3新增的计算函数calc() 这样元素间就不会有重叠发生，也不需要控制内外边距了～</p>
+<blockquote>
+<body>
+  <divclass="content">
+    content
+  </div>
+  <footerclass="footer"></footer>
+</body>
+.content {
+  min-height: calc(100vh - 70px);
+}
+.footer {
+  height: 50px;
+}
+</blockquote>
+<p>可能你会疑惑内容高度calc()中为什么减去70px，而不是footer的高度50px，因为假设俩元素有20px的间距，所以70px&#x3D;50px+20px 不过，你不必在意这些~   <strong>4、使用flexbox弹性盒布局</strong> 以上三种方法的footer高度都是固定的，通常来说这不利于网页布局：内容会改变，它们都是弹性的，一旦内容超出固定高度就会破坏布局。所以给footer使用flexbox吧，让它的高度可以变大变小变漂亮~（≧∇≦）</p>
+<blockquote>
+<body>
+  <div class="content">
+    content
+  </div>
+  <footer class="footer"></footer>
+</body>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+<p>html {<br>  height: 100%;<br>}<br>body {<br>  min-height: 100%;<br>  display: flex;<br>  flex-direction: column;<br>}<br>.content {<br>  flex: 1;<br>}</p>
+</blockquote>
+<p>你还可以在上面添加header或在下面添加更多元素。可从以下技巧选择其一：</p>
+<blockquote>
+<p> flex ： 1 使内容（如：.content）高度可以自由伸缩 margin-top： auto</p>
+</blockquote>
+<p>  <strong>5、使用Grid网格布局</strong> grid比flexbox还要新很多，并且更佳很简洁</p>
+<blockquote>
+<body>
+  <div class="content">
+    content
+  </div>
+  <footer class="footer"></footer>
+</body>
+
+<p>html {<br>  height: 100%;<br>}<br>body {<br>  min-height: 100%;<br>  display: grid;<br>  grid-template-rows: 1fr auto;<br>}<br>.footer {<br>  grid-row-start: 2;<br>  grid-row-end: 3;<br>}</p>
+</blockquote>
+<p>遗憾的是，网格布局（Grid layout）目前仅支持Chrome Canary和Firefox Developer Edition版本。   <strong>总结</strong> 其实页脚置底的布局随处可见，很多人也和我一样觉得比较简单，但可能只知其然罢了，偶然看到CSS-TRICKS上介绍页脚置底的文章觉得不错，遂译之。 转载自<a target="_blank" rel="noopener" href="https://www.cnblogs.com/ypppt/p/12868405.html">https://www.cnblogs.com/ypppt/p/12868405.html</a></p>
 
                 
             </div>
@@ -503,7 +576,7 @@
                     </i>
                 </span>
                 <span class="reprint-info">
-                    <a href="https://qiaoxingrui.github.io/2024/03/04/hello-world/">https://qiaoxingrui.github.io/2024/03/04/hello-world/</a>
+                    <a href="https://qiaoxingrui.github.io/2021/10/11/css%E4%BA%94%E7%A7%8D%E6%96%B9%E5%BC%8F%E5%AE%9E%E7%8E%B0-footer-%E7%BD%AE%E5%BA%95%EF%BC%88%E8%BD%AC%E8%BD%BD%EF%BC%89/">https://qiaoxingrui.github.io/2021/10/11/css%E4%BA%94%E7%A7%8D%E6%96%B9%E5%BC%8F%E5%AE%9E%E7%8E%B0-footer-%E7%BD%AE%E5%BA%95%EF%BC%88%E8%BD%AC%E8%BD%BD%EF%BC%89/</a>
                 </span>
             </div>
             <div class="reprint__notice">
@@ -540,7 +613,15 @@
                 <div class="post-meta__tag-list" style="display: inline-block;">
                     
                         <div class="article-tag">
-                            <span class="chip bg-color">无标签</span>
+                            
+                                <a href="/tags/css/">
+                                    <span class="chip bg-color">css</span>
+                                </a>
+                            
+                                <a href="/tags/footer/">
+                                    <span class="chip bg-color">footer</span>
+                                </a>
+                            
                         </div>
                     
                 </div>
@@ -708,18 +789,17 @@
 <article id="prenext-posts" class="prev-next articles">
     <div class="row article-row">
         
-        <div class="article col s12 m6" data-aos="fade-up" data-aos="fade-up">
+        <div class="article col s12 m6" data-aos="fade-up">
             <div class="article-badge left-badge text-color">
-                <i class="far fa-dot-circle"></i>&nbsp;本篇
-            </div>
+                <i class="fas fa-chevron-left"></i>&nbsp;上一篇</div>
             <div class="card">
-                <a href="/2024/03/04/hello-world/">
+                <a href="/2021/10/11/docker%E4%B8%80%E6%9D%A1%E5%91%BD%E4%BB%A4%E5%90%AF%E5%8A%A8%E6%89%80%E6%9C%89%E9%80%80%E5%87%BA%E7%9A%84%E5%AE%B9%E5%99%A8/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/12.jpg" class="responsive-img" alt="Hello World">
+                        <img src="/medias/featureimages/23.jpg" class="responsive-img" alt="docker一条命令启动所有退出的容器">
                         
-                        <span class="card-title">Hello World</span>
+                        <span class="card-title">docker一条命令启动所有退出的容器</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -729,18 +809,29 @@
                         
                     </div>
                     <div class="publish-info">
-                            <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2024-03-04
-                            </span>
+                        <span class="publish-date">
+                            <i class="far fa-clock fa-fw icon-date"></i>2021-10-11
+                        </span>
                         <span class="publish-author">
                             
-                            <i class="fas fa-user fa-fw"></i>
-                            小家猫
+                            <i class="fas fa-bookmark fa-fw icon-category"></i>
+                            
+                            <a href="/categories/docker/" class="post-category">
+                                    docker
+                                </a>
+                            
                             
                         </span>
                     </div>
                 </div>
-
+                
+                <div class="card-action article-tags">
+                    
+                    <a href="/tags/%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/">
+                        <span class="chip bg-color">常用命令</span>
+                    </a>
+                    
+                </div>
                 
             </div>
         </div>
@@ -751,13 +842,13 @@
                 下一篇&nbsp;<i class="fas fa-chevron-right"></i>
             </div>
             <div class="card">
-                <a href="/2022/11/07/mysql5-7%E4%BF%AE%E6%94%B9%E4%B8%8D%E5%8C%BA%E5%88%86%E5%A4%A7%E5%B0%8F%E5%86%99%E5%8A%9F%E8%83%BD%E6%97%A0%E6%95%88/">
+                <a href="/2021/10/11/java%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F%E5%AE%9E%E7%8E%B0%E6%B7%B1%E6%8B%B7%E8%B4%9D/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/3.jpg" class="responsive-img" alt="mysql5.7修改不区分大小写功能无效">
+                        <img src="/medias/featureimages/8.jpg" class="responsive-img" alt="JAVA几种方式实现深拷贝">
                         
-                        <span class="card-title">mysql5.7修改不区分大小写功能无效</span>
+                        <span class="card-title">JAVA几种方式实现深拷贝</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -768,19 +859,27 @@
                     </div>
                     <div class="publish-info">
                             <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2022-11-07
+                                <i class="far fa-clock fa-fw icon-date"></i>2021-10-11
                             </span>
                         <span class="publish-author">
                             
                             <i class="fas fa-bookmark fa-fw icon-category"></i>
                             
-                            <a href="/categories/mysql/" class="post-category">
-                                    mysql
+                            <a href="/categories/java/" class="post-category">
+                                    java
                                 </a>
                             
                             
                         </span>
                     </div>
+                </div>
+                
+                <div class="card-action article-tags">
+                    
+                    <a href="/tags/%E6%B7%B1%E6%8B%B7%E8%B4%9D/">
+                        <span class="chip bg-color">深拷贝</span>
+                    </a>
+                    
                 </div>
                 
             </div>

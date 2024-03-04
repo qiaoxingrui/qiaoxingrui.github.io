@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="keywords" content="Hello World, Java Spring 后端 微服务">
+    <meta name="keywords" content="Vue面试, Java Spring 后端 微服务">
     <meta name="description" content="">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -16,7 +16,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
 
 
-    <title>Hello World | 小家猫的笔记</title>
+    <title>Vue面试 | 小家猫的笔记</title>
     <link rel="icon" type="image/png" href="/favicon.png">
 
     <link rel="stylesheet" type="text/css" href="/libs/awesome/css/all.css">
@@ -310,12 +310,12 @@
 
 
 
-<div class="bg-cover pd-header post-cover" style="background-image: url('/medias/featureimages/12.jpg')">
+<div class="bg-cover pd-header post-cover" style="background-image: url('/medias/featureimages/17.jpg')">
     <div class="container" style="right: 0px;left: 0px;">
         <div class="row">
             <div class="col s12 m12 l12">
                 <div class="brand">
-                    <h1 class="description center-align post-title">Hello World</h1>
+                    <h1 class="description center-align post-title">Vue面试</h1>
                 </div>
             </div>
         </div>
@@ -436,6 +436,15 @@
                 </div>
                 <div class="col s5 right-align">
                     
+                    <div class="post-cate">
+                        <i class="fas fa-bookmark fa-fw icon-category"></i>
+                        
+                            <a href="/categories/java/" class="post-category">
+                                java
+                            </a>
+                        
+                    </div>
+                    
                 </div>
             </div>
 
@@ -443,7 +452,7 @@
                 
                 <div class="post-date info-break-policy">
                     <i class="far fa-calendar-minus fa-fw"></i>发布日期:&nbsp;&nbsp;
-                    2024-03-04
+                    2022-04-19
                 </div>
                 
 
@@ -464,19 +473,49 @@
 
         <div class="card-content article-card-content">
             <div id="articleContent">
-                <p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+                <h2 id="vue中created与mounted区别"><a href="#vue中created与mounted区别" class="headerlink" title="vue中created与mounted区别"></a>vue中created与mounted区别</h2><p>在created阶段，实例已经被初始化，但是还没有挂载至el上，所以我们无法获取到对应的节点，但是此时我们是可以获取到vue中data与methods中的数据的；<br>在mounted阶段，vue的template成功挂载在$el中，此时一个完整的页面已经能够显示在浏览器中，所以在这个阶段，可以调用节点了；</p>
+<h2 id="nextTick的理解"><a href="#nextTick的理解" class="headerlink" title="$nextTick的理解"></a>$nextTick的理解</h2><p>用法：<br>在下次 DOM 更新循环结束之后执行延迟回调。在修改数据之后立即使用这个方法，获取更新后的 DOM。<br>为什么？<br>Vue 实现响应式并不是数据发生变化之后 DOM 立即变化，而是按一定的策略进行 DOM 的更新。Vue 在更新 DOM 时是异步执行的。只要侦听到数据变化，Vue 将开启一个队列，并缓冲在同一事件循环中发生的所有数据变更。如果同一个 watcher 被多次触发，只会被推入到队列中一次。这种在缓冲时去除重复数据对于避免不必要的计算和 DOM 操作是非常重要的。然后，在下一个的事件循环“tick”中，Vue 刷新队列并执行实际 (已去重的) 工作。<br>所以为了在数据变化之后等待 Vue 完成更新 DOM，可以在数据变化之后立即使用 Vue.nextTick(callback)。这样回调函数将在 DOM 更新完成后被调用。<br>使用场景<br>在你更新完数据后，需要及时操作渲染好的 DOM时</p>
+<h2 id="vm-set-obj-key-val-做了什么？"><a href="#vm-set-obj-key-val-做了什么？" class="headerlink" title="vm.$set(obj, key, val) 做了什么？"></a>vm.$set(obj, key, val) 做了什么？</h2><p>由于 Vue 无法探测对象新增属性或者通过索引为数组新增一个元素，所以这才有了 vm.s e t ， 它 是 V u e . s e t 的 别 名 。 v m . set，它是 Vue.set 的别名。 vm.set，它是Vue.set的别名。vm.set 用于向响应式对象添加一个新的 property，并确保这个新的 property 同样是响应式的，并触发视图更新。</p>
+<p>为对象添加一个新的响应式数据：调用 defineReactive 方法为对象增加响应式数据，然后执行 dep.notify 进行依赖通知，更新视图<br>为数组添加一个新的响应式数据：通过 splice 方法实现</p>
+<h2 id="vue的自定义指令"><a href="#vue的自定义指令" class="headerlink" title="vue的自定义指令"></a>vue的自定义指令</h2><p>Vue除了核心功能默认内置的指令 ，Vue 也允许注册自定义指令。<br>自定义指令是用来操作DOM的。尽管Vue推崇数据驱动视图的理念，但并非所有情况都适合数据驱动。自定义指令就是一种有效的补充和扩展，不仅可用于定义任何的DOM操作，并且是可复用的。</p>
+<p>添加自定义指令的两种方式：</p>
+<p>全局指令： 通过 Vue.directive() 函数注册一个全局的指令。<br>局部指令：通过组件的 directives 属性，对该组件添加一个局部的指令。</p>
+<h2 id="vue的生命周期的理解"><a href="#vue的生命周期的理解" class="headerlink" title="vue的生命周期的理解"></a>vue的生命周期的理解</h2><p>beforecreate （初始化界面前）<br>created （初始化界面后）<br>beforemount （渲染界面前）<br>mounted （渲染界面后）<br>beforeUpdate （更新数据前）<br>updated （更新数据后）<br>beforedestory （卸载组件前）<br>destroyed （卸载组件后）</p>
+<h2 id="Vue组件通信有哪些方式"><a href="#Vue组件通信有哪些方式" class="headerlink" title="Vue组件通信有哪些方式"></a>Vue组件通信有哪些方式</h2><p>1.父传子：props<br>父组件通过 props 向下传递数据给子组件。注：组件中的数据共有三种形式：data、props、computed</p>
+<p>2.父传子孙：provide 和 inject<br>父组件定义provide方法return需要分享给子孙组件的属性，子孙组件使用 inject 选项来接收指定的我们想要添加在这个实例上的 属性；</p>
+<p>3.子传父：通过事件形式<br>子组件通过 $emit()给父组件发送消息，父组件通过v-on绑定事件接收数据。</p>
+<p>4.父子、兄弟、跨级：eventBus.js<br>这种方法通过一个空的 Vue 实例作为中央事件总线（事件中心）,用它来（e m i t ） 触 发 事 件 和 （ emit）触发事件和（emit）触发事件和（on）监听事件，巧妙而轻量地实现了任何组件间的通信。</p>
+<p>5.通信插件：PubSub.js</p>
+<p>6.vuex<br>vuex 是 vue 的状态管理器，存储的数据是响应式的。只需要把共享的值放到vuex中，其他需要的组件直接获取使用即可；</p>
+<h2 id="router和route的区别"><a href="#router和route的区别" class="headerlink" title="router和route的区别"></a>router和route的区别</h2><p>router为VueRouter的实例，相当于一个全局的路由器对象，里面含有很多属性和子对象，例如history对象。。。经常用的跳转链接就可以用this.$router.push，和router-link跳转一样。</p>
+<p>route相当于当前正在跳转的路由对象。。可以从里面获取name,path,params,query等</p>
+<h2 id="vue-router有几种钩子函数？"><a href="#vue-router有几种钩子函数？" class="headerlink" title="vue-router有几种钩子函数？"></a>vue-router有几种钩子函数？</h2><p>1.全局路由<br>全局导航钩子主要有两种钩子：前置守卫(beforeEach)、后置钩子(afterEach)<br>2. 路由独享的钩子<br>单个路由独享的导航钩子，它是在路由配置上直接进行定义的</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">routes: [</span><br><span class="line">         &#123;</span><br><span class="line">            path: &#x27;/file&#x27;,</span><br><span class="line">            component: File,</span><br><span class="line">            beforeEnter: (to, from ,next) =&gt; &#123; </span><br><span class="line">             //do something</span><br><span class="line">            &#125;</span><br><span class="line">         &#125;</span><br><span class="line">        ]</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<h2 id="vue-router路由跳转方式"><a href="#vue-router路由跳转方式" class="headerlink" title="vue-router路由跳转方式"></a>vue-router路由跳转方式</h2><p>声明式（标签跳转）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br></pre></td><td class="code"><pre><span class="line">&lt;router-link :to=&quot;&#123;name:&#x27;home&#x27;&#125;&quot;&gt;&lt;/router-link&gt;</span><br><span class="line">&lt;router-link :to=&quot;&#123;path:&#x27;/home&#x27;&#125;&quot;&gt;&lt;/router-link&gt;</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>编程式（ js跳转）</p>
+<figure class="highlight plaintext"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">this.$router.push(&#x27;/home&#x27;)</span><br><span class="line">this.$router.push(&#123;name:&#x27;home&#x27;&#125;)</span><br><span class="line">this.$router.push(&#123;path:&#x27;/home&#x27;&#125;)</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
-
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+<h2 id="keep-alive"><a href="#keep-alive" class="headerlink" title="keep-alive"></a>keep-alive</h2><p>&lt; keep-alive &gt;是Vue的内置组件，能在组件切换过程中将状态保留在内存中，防止重复渲染DOM。</p>
+<p>&lt; keep-alive &gt; 包裹动态组件时，会缓存不活动的组件实例，而不是销毁它们。</p>
+<h2 id="Vuex是什么？怎么使用？"><a href="#Vuex是什么？怎么使用？" class="headerlink" title="Vuex是什么？怎么使用？"></a>Vuex是什么？怎么使用？</h2><p>Vuex是实现组件全局状态（数据）管理的一种机制，可以方便实现组件数据之间的共享；Vuex集中管理共享的数据，易于开发和后期维护；能够高效的实现组件之间的数据共享，提高开发效率；存储在Vuex的数据是响应式的，能够实时保持页面和数据的同步；<br>Vuex重要核心属性包括：state,mutations,action,getters,modules.</p>
+<p>state<br>Vuex 使用单一状态树,即每个应用将仅仅包含一个store 实例，但单一状态树和模块化并不冲突。存放的数据状态，不可以直接修改里面的数据。</p>
+<p>mutations<br>mutations定义的方法动态修改Vuex 的 store 中的状态或数据。</p>
+<p>action<br>actions可以理解为通过将mutations里面处里数据的方法变成可异步的处理数据的方法，简单的说就是异步操作数据。view 层通过 store.dispath 来分发 action。</p>
+<p>getters<br>类似vue的计算属性，主要用来过滤一些数据。</p>
+<p>modules<br>项目特别复杂的时候，可以让每一个模块拥有自己的state、mutation、action、getters,使得结构非常清晰，方便管理。</p>
+<h2 id="什么情况下使用-Vuex？"><a href="#什么情况下使用-Vuex？" class="headerlink" title="什么情况下使用 Vuex？"></a>什么情况下使用 Vuex？</h2><p>如果应用够简单，最好不要使用 Vuex，一个简单的 store 模式即可；<br>需要构建一个中大型单页应用时，使用Vuex能更好地在组件外部管理状态；</p>
+<h2 id="Vuex和单纯的全局对象有什么区别？"><a href="#Vuex和单纯的全局对象有什么区别？" class="headerlink" title="Vuex和单纯的全局对象有什么区别？"></a>Vuex和单纯的全局对象有什么区别？</h2><p>Vuex 的状态存储是响应式的。当 Vue 组件从 store 中读取状态的时候，若 store 中的状态发生变化，那么相应的组件也会相应地得到高效更新。<br>不能直接改变 store 中的状态。改变 store 中的状态的唯一途径就是显式地提交 (commit) mutation。这样使得我们可以方便地跟踪每一个状态的变化，从而让我们能够实现一些工具帮助我们更好地了解我们的应用。</p>
+<h2 id="为什么-Vuex-的-mutation-中不能做异步操作？"><a href="#为什么-Vuex-的-mutation-中不能做异步操作？" class="headerlink" title="为什么 Vuex 的 mutation 中不能做异步操作？"></a>为什么 Vuex 的 mutation 中不能做异步操作？</h2><p>每个mutation执行完成后都会对应到一个新的状态变更，这样devtools就可以打个快照存下来，然后就可以实现 time-travel 了。如果mutation支持异步操作，就没有办法知道状态是何时更新的，无法很好的进行状态的追踪，给调试带来困难。</p>
+<h2 id="SSR有了解吗，它主要解决什么问题？"><a href="#SSR有了解吗，它主要解决什么问题？" class="headerlink" title="SSR有了解吗，它主要解决什么问题？"></a>SSR有了解吗，它主要解决什么问题？</h2><p>解决了以下两个问题：</p>
+<p>seo：搜索引擎优先爬取页面HTML结构，使用ssr时，服务端已经生成了和业务想关联的HTML，有利于seo<br>首屏呈现渲染：用户无需等待页面所有js加载完成就可以看到页面视图（压力来到了服务器，所以需要权衡哪些用服务端渲染，哪些交给客户端）<br>缺点</p>
+<p>复杂度：整个项目的复杂度<br>性能会受到影响<br>服务器负载变大，相对于前后端分离务器只需要提供静态资源来说，服务器负载更大，所以要慎重使用</p>
+<h2 id="做过哪些Vue的性能优化？"><a href="#做过哪些Vue的性能优化？" class="headerlink" title="做过哪些Vue的性能优化？"></a>做过哪些Vue的性能优化？</h2><p>编码阶段</p>
+<p>尽量减少data中的数据，data中的数据都会增加getter和setter，会收集对应的watcher<br>v-if和v-for不能连用<br>如果需要使用v-for给每项元素绑定事件时使用事件代理<br>SPA 页面采用keep-alive缓存组件<br>在更多的情况下，使用v-if替代v-show<br>key保证唯一<br>使用路由懒加载、异步组件<br>防抖、节流<br>第三方模块按需导入<br>长列表滚动到可视区域动态加载<br>图片懒加载<br>SEO优化</p>
+<p>服务端渲染SSR<br>预渲染<br>打包优化</p>
+<p>压缩代码<br>Tree Shaking&#x2F;Scope Hoisting<br>使用cdn加载第三方模块<br>多线程打包happypack<br>splitChunks抽离公共文件<br>sourceMap优化</p>
 
                 
             </div>
@@ -503,7 +542,7 @@
                     </i>
                 </span>
                 <span class="reprint-info">
-                    <a href="https://qiaoxingrui.github.io/2024/03/04/hello-world/">https://qiaoxingrui.github.io/2024/03/04/hello-world/</a>
+                    <a href="https://qiaoxingrui.github.io/2022/04/19/vue%E9%9D%A2%E8%AF%95/">https://qiaoxingrui.github.io/2022/04/19/vue%E9%9D%A2%E8%AF%95/</a>
                 </span>
             </div>
             <div class="reprint__notice">
@@ -708,18 +747,17 @@
 <article id="prenext-posts" class="prev-next articles">
     <div class="row article-row">
         
-        <div class="article col s12 m6" data-aos="fade-up" data-aos="fade-up">
+        <div class="article col s12 m6" data-aos="fade-up">
             <div class="article-badge left-badge text-color">
-                <i class="far fa-dot-circle"></i>&nbsp;本篇
-            </div>
+                <i class="fas fa-chevron-left"></i>&nbsp;上一篇</div>
             <div class="card">
-                <a href="/2024/03/04/hello-world/">
+                <a href="/2022/04/19/css%E7%9B%B8%E5%85%B3/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/12.jpg" class="responsive-img" alt="Hello World">
+                        <img src="/medias/featureimages/6.jpg" class="responsive-img" alt="CSS相关">
                         
-                        <span class="card-title">Hello World</span>
+                        <span class="card-title">CSS相关</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -729,18 +767,21 @@
                         
                     </div>
                     <div class="publish-info">
-                            <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2024-03-04
-                            </span>
+                        <span class="publish-date">
+                            <i class="far fa-clock fa-fw icon-date"></i>2022-04-19
+                        </span>
                         <span class="publish-author">
                             
-                            <i class="fas fa-user fa-fw"></i>
-                            小家猫
+                            <i class="fas fa-bookmark fa-fw icon-category"></i>
+                            
+                            <a href="/categories/java/" class="post-category">
+                                    java
+                                </a>
+                            
                             
                         </span>
                     </div>
                 </div>
-
                 
             </div>
         </div>
@@ -751,13 +792,13 @@
                 下一篇&nbsp;<i class="fas fa-chevron-right"></i>
             </div>
             <div class="card">
-                <a href="/2022/11/07/mysql5-7%E4%BF%AE%E6%94%B9%E4%B8%8D%E5%8C%BA%E5%88%86%E5%A4%A7%E5%B0%8F%E5%86%99%E5%8A%9F%E8%83%BD%E6%97%A0%E6%95%88/">
+                <a href="/2022/04/19/mongodb%E6%9B%B4%E6%96%B0%E6%95%B0%E6%8D%AE/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/3.jpg" class="responsive-img" alt="mysql5.7修改不区分大小写功能无效">
+                        <img src="/medias/featureimages/4.jpg" class="responsive-img" alt="MongoDB更新数据">
                         
-                        <span class="card-title">mysql5.7修改不区分大小写功能无效</span>
+                        <span class="card-title">MongoDB更新数据</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -768,14 +809,14 @@
                     </div>
                     <div class="publish-info">
                             <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2022-11-07
+                                <i class="far fa-clock fa-fw icon-date"></i>2022-04-19
                             </span>
                         <span class="publish-author">
                             
                             <i class="fas fa-bookmark fa-fw icon-category"></i>
                             
-                            <a href="/categories/mysql/" class="post-category">
-                                    mysql
+                            <a href="/categories/java/" class="post-category">
+                                    java
                                 </a>
                             
                             

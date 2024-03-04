@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="keywords" content="Hello World, Java Spring 后端 微服务">
+    <meta name="keywords" content="JAVA语法糖之Lambda表达式、方法引用（Method References）, Java Spring 后端 微服务">
     <meta name="description" content="">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -16,7 +16,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
 
 
-    <title>Hello World | 小家猫的笔记</title>
+    <title>JAVA语法糖之Lambda表达式、方法引用（Method References） | 小家猫的笔记</title>
     <link rel="icon" type="image/png" href="/favicon.png">
 
     <link rel="stylesheet" type="text/css" href="/libs/awesome/css/all.css">
@@ -310,12 +310,12 @@
 
 
 
-<div class="bg-cover pd-header post-cover" style="background-image: url('/medias/featureimages/12.jpg')">
+<div class="bg-cover pd-header post-cover" style="background-image: url('/medias/featureimages/11.jpg')">
     <div class="container" style="right: 0px;left: 0px;">
         <div class="row">
             <div class="col s12 m12 l12">
                 <div class="brand">
-                    <h1 class="description center-align post-title">Hello World</h1>
+                    <h1 class="description center-align post-title">JAVA语法糖之Lambda表达式、方法引用（Method References）</h1>
                 </div>
             </div>
         </div>
@@ -436,6 +436,15 @@
                 </div>
                 <div class="col s5 right-align">
                     
+                    <div class="post-cate">
+                        <i class="fas fa-bookmark fa-fw icon-category"></i>
+                        
+                            <a href="/categories/java/" class="post-category">
+                                java
+                            </a>
+                        
+                    </div>
+                    
                 </div>
             </div>
 
@@ -443,7 +452,7 @@
                 
                 <div class="post-date info-break-policy">
                     <i class="far fa-calendar-minus fa-fw"></i>发布日期:&nbsp;&nbsp;
-                    2024-03-04
+                    2021-10-11
                 </div>
                 
 
@@ -464,19 +473,45 @@
 
         <div class="card-content article-card-content">
             <div id="articleContent">
-                <p>Welcome to <a target="_blank" rel="noopener" href="https://hexo.io/">Hexo</a>! This is your very first post. Check <a target="_blank" rel="noopener" href="https://hexo.io/docs/">documentation</a> for more info. If you get any problems when using Hexo, you can find the answer in <a target="_blank" rel="noopener" href="https://hexo.io/docs/troubleshooting.html">troubleshooting</a> or you can ask me on <a target="_blank" rel="noopener" href="https://github.com/hexojs/hexo/issues">GitHub</a>.</p>
-<h2 id="Quick-Start"><a href="#Quick-Start" class="headerlink" title="Quick Start"></a>Quick Start</h2><h3 id="Create-a-new-post"><a href="#Create-a-new-post" class="headerlink" title="Create a new post"></a>Create a new post</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo new <span class="string">&quot;My New Post&quot;</span></span><br></pre></td></tr></table></figure>
+                <h4 id="Lambda表达式官方描述："><a href="#Lambda表达式官方描述：" class="headerlink" title="Lambda表达式官方描述："></a>Lambda表达式官方描述：</h4><p>One issue with anonymous classes is that if the implementation of your anonymous class is very simple, such as an interface that contains only one method, then the syntax of anonymous classes may seem unwieldy and unclear. In these cases, you’re usually trying to pass functionality as an argument to another method, such as what action should be taken when someone clicks a button. Lambda expressions enable you to do this, to treat functionality as method argument, or code as data.</p>
+<h4 id="中文释义："><a href="#中文释义：" class="headerlink" title="中文释义："></a>中文释义：</h4><p>匿名类的一个问题是，如果匿名类的实现非常简单，例如只包含一个方法的接口，那么匿名类的语法可能会显得笨拙和不清楚。 在这些情况下，您通常会尝试将功能作为参数传递给另一个方法，例如当有人单击按钮时应该采取什么操作。 Lambda 表达式使您能够做到这一点，将功能视为方法参数，或将代码视为数据。 _个人理解：是针对只有一个方法的匿名类的一个简化语法糖，_（jdk1.8新增了一个FunctionalInterface注解，被这个注解注释的接口被称为functional interface 这种接口的实现都可以用lambda表达式）</p>
+<h4 id="Lambda表达式语法："><a href="#Lambda表达式语法：" class="headerlink" title="Lambda表达式语法："></a>Lambda表达式语法：</h4><p>一个 lambda 表达式包含以下内容： 括号中以逗号分隔的形式参数列表。 CheckPerson.test 方法包含一个参数 p，它表示 Person 类的一个实例。 <strong>注意：您可以省略 lambda 表达式中参数的数据类型。 另外，如果只有一个参数，可以省略括号。 例如，以下 lambda 表达式也是有效的：</strong></p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">p -&gt; p.getGender() == Person.Sex.MALE </span><br><span class="line">    &amp;&amp; p.getAge() &gt;= <span class="number">18</span></span><br><span class="line">    &amp;&amp; p.getAge() &lt;= <span class="number">25</span></span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/writing.html">Writing</a></p>
-<h3 id="Run-server"><a href="#Run-server" class="headerlink" title="Run server"></a>Run server</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo server</span><br></pre></td></tr></table></figure>
+<p>箭头标记写法，-&gt; 主体，由单个表达式或语句块组成。 此示例使用以下表达式：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">p.getGender() == Person.Sex.MALE </span><br><span class="line">    &amp;&amp; p.getAge() &gt;= <span class="number">18</span></span><br><span class="line">    &amp;&amp; p.getAge() &lt;= <span class="number">25</span></span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/server.html">Server</a></p>
-<h3 id="Generate-static-files"><a href="#Generate-static-files" class="headerlink" title="Generate static files"></a>Generate static files</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo generate</span><br></pre></td></tr></table></figure>
+<p>如果指定单个表达式，则 Java 运行时会计算该表达式，然后返回其值。 或者，您可以使用 return 语句：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">p -&gt; &#123;</span><br><span class="line">    <span class="keyword">return</span> p.getGender() == Person.Sex.MALE</span><br><span class="line">        &amp;&amp; p.getAge() &gt;= <span class="number">18</span></span><br><span class="line">        &amp;&amp; p.getAge() &lt;= <span class="number">25</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/generating.html">Generating</a></p>
-<h3 id="Deploy-to-remote-sites"><a href="#Deploy-to-remote-sites" class="headerlink" title="Deploy to remote sites"></a>Deploy to remote sites</h3><figure class="highlight bash"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">$ hexo deploy</span><br></pre></td></tr></table></figure>
+<p>return 语句不是表达式； 在 lambda 表达式中，您必须将语句括在大括号 ({}) 中。 但是，您不必将 void 方法调用括在大括号中。 例如，以下是一个有效的 lambda 表达式：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">email -&gt; System.out.println(email)</span><br></pre></td></tr></table></figure>
 
-<p>More info: <a target="_blank" rel="noopener" href="https://hexo.io/docs/one-command-deployment.html">Deployment</a></p>
+<p>请注意，一个 lambda 表达式看起来很像一个方法声明； 您可以将 lambda 表达式视为匿名方法——没有名称的方法。 以下示例 Calculator 是采用多个形参的 lambda 表达式示例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Calculator</span> &#123;</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">interface</span> <span class="title class_">IntegerMath</span> &#123;</span><br><span class="line">        <span class="type">int</span> <span class="title function_">operation</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span>;   </span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">operateBinary</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b, IntegerMath op)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> op.operation(a, b);</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String... args)</span> &#123;</span><br><span class="line">    </span><br><span class="line">        <span class="type">Calculator</span> <span class="variable">myApp</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Calculator</span>();</span><br><span class="line">        <span class="type">IntegerMath</span> <span class="variable">addition</span> <span class="operator">=</span> (a, b) -&gt; a + b;</span><br><span class="line">        <span class="type">IntegerMath</span> <span class="variable">subtraction</span> <span class="operator">=</span> (a, b) -&gt; a - b;</span><br><span class="line">        System.out.println(<span class="string">&quot;40 + 2 = &quot;</span> +</span><br><span class="line">            myApp.operateBinary(<span class="number">40</span>, <span class="number">2</span>, addition));</span><br><span class="line">        System.out.println(<span class="string">&quot;20 - 10 = &quot;</span> +</span><br><span class="line">            myApp.operateBinary(<span class="number">20</span>, <span class="number">10</span>, subtraction));    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+
+<p>方法operateBinary 对两个整数操作数执行数学运算。 操作本身由 IntegerMath 的实例指定。 该示例使用 lambda 表达式定义了两个运算，即加法和减法。 该示例打印以下内容：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">40</span> + <span class="number">2</span> = <span class="number">42</span></span><br><span class="line"></span><br><span class="line"><span class="number">20</span> - <span class="number">10</span> = <span class="number">10</span></span><br></pre></td></tr></table></figure>
+
+<h4 id="Method-References（这种双冒号-写法）"><a href="#Method-References（这种双冒号-写法）" class="headerlink" title="Method References（这种双冒号::写法）"></a><em>Method References（这种双冒号::写法）</em></h4><p>您可以使用 lambda 表达式来创建匿名方法。 然而，有时 lambda 表达式除了调用现有方法之外什么都不做。 在这些情况下，按名称引用现有方法通常会更清楚。 方法引用（Method references）使您能够做到这一点； 它们是用于已具有名称的方法的紧凑、易于阅读的 lambda 表达式。 再次考虑 Lambda 表达式部分中讨论的 Person 类：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Person</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    </span><br><span class="line">    LocalDate birthday;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getAge</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> LocalDate <span class="title function_">getBirthday</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> birthday;</span><br><span class="line">    &#125;   </span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">int</span> <span class="title function_">compareByAge</span><span class="params">(Person a, Person b)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> a.birthday.compareTo(b.birthday);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+
+<p>假设您的社交网络应用程序的成员包含在一个数组中，并且您希望按年龄对数组进行排序。 您可以使用以下代码：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Person[] rosterAsArray = roster.toArray(<span class="keyword">new</span> <span class="title class_">Person</span>[roster.size()]);</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">PersonAgeComparator</span> <span class="keyword">implements</span> <span class="title class_">Comparator</span>&lt;Person&gt; &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">compare</span><span class="params">(Person a, Person b)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> a.getBirthday().compareTo(b.getBirthday());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">        </span><br><span class="line">Arrays.sort(rosterAsArray, <span class="keyword">new</span> <span class="title class_">PersonAgeComparator</span>());</span><br></pre></td></tr></table></figure>
+
+<p>此排序调用的方法签名如下：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &lt;T&gt; <span class="keyword">void</span> <span class="title function_">sort</span><span class="params">(T[] a, Comparator&lt;? <span class="built_in">super</span> T&gt; c)</span></span><br></pre></td></tr></table></figure>
+
+<p>请注意，接口 Comparator 是一个功能接口（functional interface）。 因此，您可以使用 lambda 表达式而不是定义然后创建实现 Comparator 的类的新实例：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Arrays.sort(rosterAsArray,</span><br><span class="line">    (Person a, Person b) -&gt; &#123;</span><br><span class="line">        <span class="keyword">return</span> a.getBirthday().compareTo(b.getBirthday());</span><br><span class="line">    &#125;</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>但是，这种比较两个 Person 实例的出生日期的方法已经作为 Person.compareByAge 存在。 您可以在 lambda 表达式的主体中调用此方法：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Arrays.sort(rosterAsArray,</span><br><span class="line">    (a, b) -&gt; Person.compareByAge(a, b)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+
+<p>由于此 lambda 表达式调用现有方法，因此您可以使用方法引用（Method references）而不是 lambda 表达式：</p>
+<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Arrays.sort(rosterAsArray, Person::compareByAge);</span><br></pre></td></tr></table></figure>
+
+<p>方法引用 Person::compareByAge 在语义上与 lambda 表达式 (a, b) -&gt; Person.compareByAge(a, b) 相同。 每个都有以下特点： 它的形参列表是从 Comparator<Person>.compare 复制过来的，即 (Person, Person)。 它的主体调用方法 Person.compareByAge。 附官方文档链接： <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/tutorial/java/javaOO/methodreferences.html">https://docs.oracle.com/javase/tutorial/java/javaOO/methodreferences.html </a> <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/tutorial/java/javaOO/lambdaexpressions.html">https://docs.oracle.com/javase/tutorial/java/javaOO/lambdaexpressions.html</a></p>
 
                 
             </div>
@@ -503,7 +538,7 @@
                     </i>
                 </span>
                 <span class="reprint-info">
-                    <a href="https://qiaoxingrui.github.io/2024/03/04/hello-world/">https://qiaoxingrui.github.io/2024/03/04/hello-world/</a>
+                    <a href="https://qiaoxingrui.github.io/2021/10/11/java%E8%AF%AD%E6%B3%95%E7%B3%96%E4%B9%8Blambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E3%80%81%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%EF%BC%88method-references%EF%BC%89/">https://qiaoxingrui.github.io/2021/10/11/java%E8%AF%AD%E6%B3%95%E7%B3%96%E4%B9%8Blambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E3%80%81%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%EF%BC%88method-references%EF%BC%89/</a>
                 </span>
             </div>
             <div class="reprint__notice">
@@ -708,18 +743,17 @@
 <article id="prenext-posts" class="prev-next articles">
     <div class="row article-row">
         
-        <div class="article col s12 m6" data-aos="fade-up" data-aos="fade-up">
+        <div class="article col s12 m6" data-aos="fade-up">
             <div class="article-badge left-badge text-color">
-                <i class="far fa-dot-circle"></i>&nbsp;本篇
-            </div>
+                <i class="fas fa-chevron-left"></i>&nbsp;上一篇</div>
             <div class="card">
-                <a href="/2024/03/04/hello-world/">
+                <a href="/2021/10/11/java%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F%E5%AE%9E%E7%8E%B0%E6%B7%B1%E6%8B%B7%E8%B4%9D/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/12.jpg" class="responsive-img" alt="Hello World">
+                        <img src="/medias/featureimages/8.jpg" class="responsive-img" alt="JAVA几种方式实现深拷贝">
                         
-                        <span class="card-title">Hello World</span>
+                        <span class="card-title">JAVA几种方式实现深拷贝</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -729,18 +763,29 @@
                         
                     </div>
                     <div class="publish-info">
-                            <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2024-03-04
-                            </span>
+                        <span class="publish-date">
+                            <i class="far fa-clock fa-fw icon-date"></i>2021-10-11
+                        </span>
                         <span class="publish-author">
                             
-                            <i class="fas fa-user fa-fw"></i>
-                            小家猫
+                            <i class="fas fa-bookmark fa-fw icon-category"></i>
+                            
+                            <a href="/categories/java/" class="post-category">
+                                    java
+                                </a>
+                            
                             
                         </span>
                     </div>
                 </div>
-
+                
+                <div class="card-action article-tags">
+                    
+                    <a href="/tags/%E6%B7%B1%E6%8B%B7%E8%B4%9D/">
+                        <span class="chip bg-color">深拷贝</span>
+                    </a>
+                    
+                </div>
                 
             </div>
         </div>
@@ -751,13 +796,13 @@
                 下一篇&nbsp;<i class="fas fa-chevron-right"></i>
             </div>
             <div class="card">
-                <a href="/2022/11/07/mysql5-7%E4%BF%AE%E6%94%B9%E4%B8%8D%E5%8C%BA%E5%88%86%E5%A4%A7%E5%B0%8F%E5%86%99%E5%8A%9F%E8%83%BD%E6%97%A0%E6%95%88/">
+                <a href="/2021/10/11/kratos-4-0-3/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/3.jpg" class="responsive-img" alt="mysql5.7修改不区分大小写功能无效">
+                        <img src="/medias/featureimages/4.jpg" class="responsive-img" alt="kratos-4.0.3">
                         
-                        <span class="card-title">mysql5.7修改不区分大小写功能无效</span>
+                        <span class="card-title">kratos-4.0.3</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -768,14 +813,14 @@
                     </div>
                     <div class="publish-info">
                             <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2022-11-07
+                                <i class="far fa-clock fa-fw icon-date"></i>2021-10-11
                             </span>
                         <span class="publish-author">
                             
                             <i class="fas fa-bookmark fa-fw icon-category"></i>
                             
-                            <a href="/categories/mysql/" class="post-category">
-                                    mysql
+                            <a href="/categories/uncategorized/" class="post-category">
+                                    uncategorized
                                 </a>
                             
                             
