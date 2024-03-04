@@ -95,39 +95,6 @@
     
   </li>
   
-  <li class="hide-on-med-and-down nav-item">
-    
-    <a href="/about" class="waves-effect waves-light">
-      
-      <i class="fas fa-user-circle" style="zoom: 0.6;"></i>
-      
-      <span>关于</span>
-    </a>
-    
-  </li>
-  
-  <li class="hide-on-med-and-down nav-item">
-    
-    <a href="/contact" class="waves-effect waves-light">
-      
-      <i class="fas fa-comments" style="zoom: 0.6;"></i>
-      
-      <span>留言板</span>
-    </a>
-    
-  </li>
-  
-  <li class="hide-on-med-and-down nav-item">
-    
-    <a href="/friends" class="waves-effect waves-light">
-      
-      <i class="fas fa-address-book" style="zoom: 0.6;"></i>
-      
-      <span>友情链接</span>
-    </a>
-    
-  </li>
-  
   <li>
     <a href="#searchModal" class="modal-trigger waves-effect waves-light">
       <i id="searchIcon" class="fas fa-search" title="搜索" style="zoom: 0.85;"></i>
@@ -194,39 +161,6 @@
 			    <i class="fa-fw fas fa-archive"></i>
 			
 			归档
-		</a>
-          
-        </li>
-        
-        <li class="m-nav-item">
-	  
-		<a href="/about" class="waves-effect waves-light">
-			
-			    <i class="fa-fw fas fa-user-circle"></i>
-			
-			关于
-		</a>
-          
-        </li>
-        
-        <li class="m-nav-item">
-	  
-		<a href="/contact" class="waves-effect waves-light">
-			
-			    <i class="fa-fw fas fa-comments"></i>
-			
-			留言板
-		</a>
-          
-        </li>
-        
-        <li class="m-nav-item">
-	  
-		<a href="/friends" class="waves-effect waves-light">
-			
-			    <i class="fa-fw fas fa-address-book"></i>
-			
-			友情链接
 		</a>
           
         </li>
@@ -468,6 +402,9 @@
         <hr class="clearfix">
 
         
+        <!-- 是否加载使用自带的 prismjs. -->
+        <link rel="stylesheet" href="/libs/prism/prism.css">
+        
 
         
 
@@ -476,42 +413,106 @@
                 <h4 id="Lambda表达式官方描述："><a href="#Lambda表达式官方描述：" class="headerlink" title="Lambda表达式官方描述："></a>Lambda表达式官方描述：</h4><p>One issue with anonymous classes is that if the implementation of your anonymous class is very simple, such as an interface that contains only one method, then the syntax of anonymous classes may seem unwieldy and unclear. In these cases, you’re usually trying to pass functionality as an argument to another method, such as what action should be taken when someone clicks a button. Lambda expressions enable you to do this, to treat functionality as method argument, or code as data.</p>
 <h4 id="中文释义："><a href="#中文释义：" class="headerlink" title="中文释义："></a>中文释义：</h4><p>匿名类的一个问题是，如果匿名类的实现非常简单，例如只包含一个方法的接口，那么匿名类的语法可能会显得笨拙和不清楚。 在这些情况下，您通常会尝试将功能作为参数传递给另一个方法，例如当有人单击按钮时应该采取什么操作。 Lambda 表达式使您能够做到这一点，将功能视为方法参数，或将代码视为数据。 _个人理解：是针对只有一个方法的匿名类的一个简化语法糖，_（jdk1.8新增了一个FunctionalInterface注解，被这个注解注释的接口被称为functional interface 这种接口的实现都可以用lambda表达式）</p>
 <h4 id="Lambda表达式语法："><a href="#Lambda表达式语法：" class="headerlink" title="Lambda表达式语法："></a>Lambda表达式语法：</h4><p>一个 lambda 表达式包含以下内容： 括号中以逗号分隔的形式参数列表。 CheckPerson.test 方法包含一个参数 p，它表示 Person 类的一个实例。 <strong>注意：您可以省略 lambda 表达式中参数的数据类型。 另外，如果只有一个参数，可以省略括号。 例如，以下 lambda 表达式也是有效的：</strong></p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">p -&gt; p.getGender() == Person.Sex.MALE </span><br><span class="line">    &amp;&amp; p.getAge() &gt;= <span class="number">18</span></span><br><span class="line">    &amp;&amp; p.getAge() &lt;= <span class="number">25</span></span><br></pre></td></tr></table></figure>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java">p <span class="token operator">-></span> p<span class="token punctuation">.</span><span class="token function">getGender</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token class-name">Person<span class="token punctuation">.</span>Sex</span><span class="token punctuation">.</span><span class="token constant">MALE</span> 
+    <span class="token operator">&amp;&amp;</span> p<span class="token punctuation">.</span><span class="token function">getAge</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">>=</span> <span class="token number">18</span>
+    <span class="token operator">&amp;&amp;</span> p<span class="token punctuation">.</span><span class="token function">getAge</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">&lt;=</span> <span class="token number">25</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
 
 <p>箭头标记写法，-&gt; 主体，由单个表达式或语句块组成。 此示例使用以下表达式：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">p.getGender() == Person.Sex.MALE </span><br><span class="line">    &amp;&amp; p.getAge() &gt;= <span class="number">18</span></span><br><span class="line">    &amp;&amp; p.getAge() &lt;= <span class="number">25</span></span><br></pre></td></tr></table></figure>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java">p<span class="token punctuation">.</span><span class="token function">getGender</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token class-name">Person<span class="token punctuation">.</span>Sex</span><span class="token punctuation">.</span><span class="token constant">MALE</span> 
+    <span class="token operator">&amp;&amp;</span> p<span class="token punctuation">.</span><span class="token function">getAge</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">>=</span> <span class="token number">18</span>
+    <span class="token operator">&amp;&amp;</span> p<span class="token punctuation">.</span><span class="token function">getAge</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">&lt;=</span> <span class="token number">25</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
 
 <p>如果指定单个表达式，则 Java 运行时会计算该表达式，然后返回其值。 或者，您可以使用 return 语句：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">p -&gt; &#123;</span><br><span class="line">    <span class="keyword">return</span> p.getGender() == Person.Sex.MALE</span><br><span class="line">        &amp;&amp; p.getAge() &gt;= <span class="number">18</span></span><br><span class="line">        &amp;&amp; p.getAge() &lt;= <span class="number">25</span>;</span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java">p <span class="token operator">-></span> <span class="token punctuation">&#123;</span>
+    <span class="token keyword">return</span> p<span class="token punctuation">.</span><span class="token function">getGender</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token class-name">Person<span class="token punctuation">.</span>Sex</span><span class="token punctuation">.</span><span class="token constant">MALE</span>
+        <span class="token operator">&amp;&amp;</span> p<span class="token punctuation">.</span><span class="token function">getAge</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">>=</span> <span class="token number">18</span>
+        <span class="token operator">&amp;&amp;</span> p<span class="token punctuation">.</span><span class="token function">getAge</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">&lt;=</span> <span class="token number">25</span><span class="token punctuation">;</span>
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>return 语句不是表达式； 在 lambda 表达式中，您必须将语句括在大括号 ({}) 中。 但是，您不必将 void 方法调用括在大括号中。 例如，以下是一个有效的 lambda 表达式：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">email -&gt; System.out.println(email)</span><br></pre></td></tr></table></figure>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java">email <span class="token operator">-></span> <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span>email<span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
 <p>请注意，一个 lambda 表达式看起来很像一个方法声明； 您可以将 lambda 表达式视为匿名方法——没有名称的方法。 以下示例 Calculator 是采用多个形参的 lambda 表达式示例：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br><span class="line">21</span><br><span class="line">22</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Calculator</span> &#123;</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">interface</span> <span class="title class_">IntegerMath</span> &#123;</span><br><span class="line">        <span class="type">int</span> <span class="title function_">operation</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b)</span>;   </span><br><span class="line">    &#125;</span><br><span class="line">  </span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">operateBinary</span><span class="params">(<span class="type">int</span> a, <span class="type">int</span> b, IntegerMath op)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> op.operation(a, b);</span><br><span class="line">    &#125;</span><br><span class="line"> </span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="keyword">void</span> <span class="title function_">main</span><span class="params">(String... args)</span> &#123;</span><br><span class="line">    </span><br><span class="line">        <span class="type">Calculator</span> <span class="variable">myApp</span> <span class="operator">=</span> <span class="keyword">new</span> <span class="title class_">Calculator</span>();</span><br><span class="line">        <span class="type">IntegerMath</span> <span class="variable">addition</span> <span class="operator">=</span> (a, b) -&gt; a + b;</span><br><span class="line">        <span class="type">IntegerMath</span> <span class="variable">subtraction</span> <span class="operator">=</span> (a, b) -&gt; a - b;</span><br><span class="line">        System.out.println(<span class="string">&quot;40 + 2 = &quot;</span> +</span><br><span class="line">            myApp.operateBinary(<span class="number">40</span>, <span class="number">2</span>, addition));</span><br><span class="line">        System.out.println(<span class="string">&quot;20 - 10 = &quot;</span> +</span><br><span class="line">            myApp.operateBinary(<span class="number">20</span>, <span class="number">10</span>, subtraction));    </span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line"></span><br></pre></td></tr></table></figure>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token keyword">public</span> <span class="token keyword">class</span> <span class="token class-name">Calculator</span> <span class="token punctuation">&#123;</span>
+  
+    <span class="token keyword">interface</span> <span class="token class-name">IntegerMath</span> <span class="token punctuation">&#123;</span>
+        <span class="token keyword">int</span> <span class="token function">operation</span><span class="token punctuation">(</span><span class="token keyword">int</span> a<span class="token punctuation">,</span> <span class="token keyword">int</span> b<span class="token punctuation">)</span><span class="token punctuation">;</span>   
+    <span class="token punctuation">&#125;</span>
+  
+    <span class="token keyword">public</span> <span class="token keyword">int</span> <span class="token function">operateBinary</span><span class="token punctuation">(</span><span class="token keyword">int</span> a<span class="token punctuation">,</span> <span class="token keyword">int</span> b<span class="token punctuation">,</span> <span class="token class-name">IntegerMath</span> op<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+        <span class="token keyword">return</span> op<span class="token punctuation">.</span><span class="token function">operation</span><span class="token punctuation">(</span>a<span class="token punctuation">,</span> b<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+ 
+    <span class="token keyword">public</span> <span class="token keyword">static</span> <span class="token keyword">void</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token class-name">String</span><span class="token punctuation">.</span><span class="token punctuation">.</span><span class="token punctuation">.</span> args<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+    
+        <span class="token class-name">Calculator</span> myApp <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">Calculator</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">IntegerMath</span> addition <span class="token operator">=</span> <span class="token punctuation">(</span>a<span class="token punctuation">,</span> b<span class="token punctuation">)</span> <span class="token operator">-></span> a <span class="token operator">+</span> b<span class="token punctuation">;</span>
+        <span class="token class-name">IntegerMath</span> subtraction <span class="token operator">=</span> <span class="token punctuation">(</span>a<span class="token punctuation">,</span> b<span class="token punctuation">)</span> <span class="token operator">-></span> a <span class="token operator">-</span> b<span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"40 + 2 = "</span> <span class="token operator">+</span>
+            myApp<span class="token punctuation">.</span><span class="token function">operateBinary</span><span class="token punctuation">(</span><span class="token number">40</span><span class="token punctuation">,</span> <span class="token number">2</span><span class="token punctuation">,</span> addition<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"20 - 10 = "</span> <span class="token operator">+</span>
+            myApp<span class="token punctuation">.</span><span class="token function">operateBinary</span><span class="token punctuation">(</span><span class="token number">20</span><span class="token punctuation">,</span> <span class="token number">10</span><span class="token punctuation">,</span> subtraction<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>    
+    <span class="token punctuation">&#125;</span>
+<span class="token punctuation">&#125;</span>
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>方法operateBinary 对两个整数操作数执行数学运算。 操作本身由 IntegerMath 的实例指定。 该示例使用 lambda 表达式定义了两个运算，即加法和减法。 该示例打印以下内容：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line"><span class="number">40</span> + <span class="number">2</span> = <span class="number">42</span></span><br><span class="line"></span><br><span class="line"><span class="number">20</span> - <span class="number">10</span> = <span class="number">10</span></span><br></pre></td></tr></table></figure>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token number">40</span> <span class="token operator">+</span> <span class="token number">2</span> <span class="token operator">=</span> <span class="token number">42</span>
+
+<span class="token number">20</span> <span class="token operator">-</span> <span class="token number">10</span> <span class="token operator">=</span> <span class="token number">10</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
 
 <h4 id="Method-References（这种双冒号-写法）"><a href="#Method-References（这种双冒号-写法）" class="headerlink" title="Method References（这种双冒号::写法）"></a><em>Method References（这种双冒号::写法）</em></h4><p>您可以使用 lambda 表达式来创建匿名方法。 然而，有时 lambda 表达式除了调用现有方法之外什么都不做。 在这些情况下，按名称引用现有方法通常会更清楚。 方法引用（Method references）使您能够做到这一点； 它们是用于已具有名称的方法的紧凑、易于阅读的 lambda 表达式。 再次考虑 Lambda 表达式部分中讨论的 Person 类：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br><span class="line">10</span><br><span class="line">11</span><br><span class="line">12</span><br><span class="line">13</span><br><span class="line">14</span><br><span class="line">15</span><br><span class="line">16</span><br><span class="line">17</span><br><span class="line">18</span><br><span class="line">19</span><br><span class="line">20</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">public</span> <span class="keyword">class</span> <span class="title class_">Person</span> &#123;</span><br><span class="line"></span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">    </span><br><span class="line">    LocalDate birthday;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">getAge</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="comment">// ...</span></span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="keyword">public</span> LocalDate <span class="title function_">getBirthday</span><span class="params">()</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> birthday;</span><br><span class="line">    &#125;   </span><br><span class="line"></span><br><span class="line">    <span class="keyword">public</span> <span class="keyword">static</span> <span class="type">int</span> <span class="title function_">compareByAge</span><span class="params">(Person a, Person b)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> a.birthday.compareTo(b.birthday);</span><br><span class="line">    &#125;</span><br><span class="line">    </span><br><span class="line">    <span class="comment">// ...</span></span><br><span class="line">&#125;</span><br></pre></td></tr></table></figure>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token keyword">public</span> <span class="token keyword">class</span> <span class="token class-name">Person</span> <span class="token punctuation">&#123;</span>
+
+    <span class="token comment">// ...</span>
+    
+    <span class="token class-name">LocalDate</span> birthday<span class="token punctuation">;</span>
+    
+    <span class="token keyword">public</span> <span class="token keyword">int</span> <span class="token function">getAge</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+        <span class="token comment">// ...</span>
+    <span class="token punctuation">&#125;</span>
+    
+    <span class="token keyword">public</span> <span class="token class-name">LocalDate</span> <span class="token function">getBirthday</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+        <span class="token keyword">return</span> birthday<span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>   
+
+    <span class="token keyword">public</span> <span class="token keyword">static</span> <span class="token keyword">int</span> <span class="token function">compareByAge</span><span class="token punctuation">(</span><span class="token class-name">Person</span> a<span class="token punctuation">,</span> <span class="token class-name">Person</span> b<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+        <span class="token keyword">return</span> a<span class="token punctuation">.</span>birthday<span class="token punctuation">.</span><span class="token function">compareTo</span><span class="token punctuation">(</span>b<span class="token punctuation">.</span>birthday<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+    
+    <span class="token comment">// ...</span>
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>假设您的社交网络应用程序的成员包含在一个数组中，并且您希望按年龄对数组进行排序。 您可以使用以下代码：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br><span class="line">6</span><br><span class="line">7</span><br><span class="line">8</span><br><span class="line">9</span><br></pre></td><td class="code"><pre><span class="line">Person[] rosterAsArray = roster.toArray(<span class="keyword">new</span> <span class="title class_">Person</span>[roster.size()]);</span><br><span class="line"></span><br><span class="line"><span class="keyword">class</span> <span class="title class_">PersonAgeComparator</span> <span class="keyword">implements</span> <span class="title class_">Comparator</span>&lt;Person&gt; &#123;</span><br><span class="line">    <span class="keyword">public</span> <span class="type">int</span> <span class="title function_">compare</span><span class="params">(Person a, Person b)</span> &#123;</span><br><span class="line">        <span class="keyword">return</span> a.getBirthday().compareTo(b.getBirthday());</span><br><span class="line">    &#125;</span><br><span class="line">&#125;</span><br><span class="line">        </span><br><span class="line">Arrays.sort(rosterAsArray, <span class="keyword">new</span> <span class="title class_">PersonAgeComparator</span>());</span><br></pre></td></tr></table></figure>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token class-name">Person</span><span class="token punctuation">[</span><span class="token punctuation">]</span> rosterAsArray <span class="token operator">=</span> roster<span class="token punctuation">.</span><span class="token function">toArray</span><span class="token punctuation">(</span><span class="token keyword">new</span> <span class="token class-name">Person</span><span class="token punctuation">[</span>roster<span class="token punctuation">.</span><span class="token function">size</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">]</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token keyword">class</span> <span class="token class-name">PersonAgeComparator</span> <span class="token keyword">implements</span> <span class="token class-name">Comparator</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token class-name">Person</span><span class="token punctuation">></span></span> <span class="token punctuation">&#123;</span>
+    <span class="token keyword">public</span> <span class="token keyword">int</span> <span class="token function">compare</span><span class="token punctuation">(</span><span class="token class-name">Person</span> a<span class="token punctuation">,</span> <span class="token class-name">Person</span> b<span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+        <span class="token keyword">return</span> a<span class="token punctuation">.</span><span class="token function">getBirthday</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">compareTo</span><span class="token punctuation">(</span>b<span class="token punctuation">.</span><span class="token function">getBirthday</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+<span class="token punctuation">&#125;</span>
+        
+<span class="token class-name">Arrays</span><span class="token punctuation">.</span><span class="token function">sort</span><span class="token punctuation">(</span>rosterAsArray<span class="token punctuation">,</span> <span class="token keyword">new</span> <span class="token class-name">PersonAgeComparator</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>此排序调用的方法签名如下：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line"><span class="keyword">static</span> &lt;T&gt; <span class="keyword">void</span> <span class="title function_">sort</span><span class="params">(T[] a, Comparator&lt;? <span class="built_in">super</span> T&gt; c)</span></span><br></pre></td></tr></table></figure>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token keyword">static</span> <span class="token generics"><span class="token punctuation">&lt;</span><span class="token class-name">T</span><span class="token punctuation">></span></span> <span class="token keyword">void</span> <span class="token function">sort</span><span class="token punctuation">(</span><span class="token class-name">T</span><span class="token punctuation">[</span><span class="token punctuation">]</span> a<span class="token punctuation">,</span> <span class="token class-name">Comparator</span><span class="token generics"><span class="token punctuation">&lt;</span><span class="token operator">?</span> <span class="token keyword">super</span> <span class="token class-name">T</span><span class="token punctuation">></span></span> c<span class="token punctuation">)</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
 <p>请注意，接口 Comparator 是一个功能接口（functional interface）。 因此，您可以使用 lambda 表达式而不是定义然后创建实现 Comparator 的类的新实例：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br><span class="line">4</span><br><span class="line">5</span><br></pre></td><td class="code"><pre><span class="line">Arrays.sort(rosterAsArray,</span><br><span class="line">    (Person a, Person b) -&gt; &#123;</span><br><span class="line">        <span class="keyword">return</span> a.getBirthday().compareTo(b.getBirthday());</span><br><span class="line">    &#125;</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token class-name">Arrays</span><span class="token punctuation">.</span><span class="token function">sort</span><span class="token punctuation">(</span>rosterAsArray<span class="token punctuation">,</span>
+    <span class="token punctuation">(</span><span class="token class-name">Person</span> a<span class="token punctuation">,</span> <span class="token class-name">Person</span> b<span class="token punctuation">)</span> <span class="token operator">-></span> <span class="token punctuation">&#123;</span>
+        <span class="token keyword">return</span> a<span class="token punctuation">.</span><span class="token function">getBirthday</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">compareTo</span><span class="token punctuation">(</span>b<span class="token punctuation">.</span><span class="token function">getBirthday</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+<span class="token punctuation">)</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
 <p>但是，这种比较两个 Person 实例的出生日期的方法已经作为 Person.compareByAge 存在。 您可以在 lambda 表达式的主体中调用此方法：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br><span class="line">2</span><br><span class="line">3</span><br></pre></td><td class="code"><pre><span class="line">Arrays.sort(rosterAsArray,</span><br><span class="line">    (a, b) -&gt; Person.compareByAge(a, b)</span><br><span class="line">);</span><br></pre></td></tr></table></figure>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token class-name">Arrays</span><span class="token punctuation">.</span><span class="token function">sort</span><span class="token punctuation">(</span>rosterAsArray<span class="token punctuation">,</span>
+    <span class="token punctuation">(</span>a<span class="token punctuation">,</span> b<span class="token punctuation">)</span> <span class="token operator">-></span> <span class="token class-name">Person</span><span class="token punctuation">.</span><span class="token function">compareByAge</span><span class="token punctuation">(</span>a<span class="token punctuation">,</span> b<span class="token punctuation">)</span>
+<span class="token punctuation">)</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
 
 <p>由于此 lambda 表达式调用现有方法，因此您可以使用方法引用（Method references）而不是 lambda 表达式：</p>
-<figure class="highlight java"><table><tr><td class="gutter"><pre><span class="line">1</span><br></pre></td><td class="code"><pre><span class="line">Arrays.sort(rosterAsArray, Person::compareByAge);</span><br></pre></td></tr></table></figure>
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token class-name">Arrays</span><span class="token punctuation">.</span><span class="token function">sort</span><span class="token punctuation">(</span>rosterAsArray<span class="token punctuation">,</span> <span class="token class-name">Person</span><span class="token operator">::</span><span class="token function">compareByAge</span><span class="token punctuation">)</span><span class="token punctuation">;</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre>
 
-<p>方法引用 Person::compareByAge 在语义上与 lambda 表达式 (a, b) -&gt; Person.compareByAge(a, b) 相同。 每个都有以下特点： 它的形参列表是从 Comparator<Person>.compare 复制过来的，即 (Person, Person)。 它的主体调用方法 Person.compareByAge。 附官方文档链接： <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/tutorial/java/javaOO/methodreferences.html">https://docs.oracle.com/javase/tutorial/java/javaOO/methodreferences.html </a> <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/tutorial/java/javaOO/lambdaexpressions.html">https://docs.oracle.com/javase/tutorial/java/javaOO/lambdaexpressions.html</a></p>
+<p>方法引用 Person::compareByAge 在语义上与 lambda 表达式 (a, b) -&gt; Person.compareByAge(a, b) 相同。 每个都有以下特点： 它的形参列表是从 Comparator<Person>.compare 复制过来的，即 (Person, Person)。 它的主体调用方法 Person.compareByAge。 附官方文档链接： <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/tutorial/java/javaOO/methodreferences.html">https://docs.oracle.com/javase/tutorial/java/javaOO/methodreferences.html</a> <a target="_blank" rel="noopener" href="https://docs.oracle.com/javase/tutorial/java/javaOO/lambdaexpressions.html">https://docs.oracle.com/javase/tutorial/java/javaOO/lambdaexpressions.html</a></p>
 
                 
             </div>
@@ -747,13 +748,13 @@
             <div class="article-badge left-badge text-color">
                 <i class="fas fa-chevron-left"></i>&nbsp;上一篇</div>
             <div class="card">
-                <a href="/2021/10/11/java%E5%87%A0%E7%A7%8D%E6%96%B9%E5%BC%8F%E5%AE%9E%E7%8E%B0%E6%B7%B1%E6%8B%B7%E8%B4%9D/">
+                <a href="/2021/10/11/ES%E5%B8%B8%E7%94%A8%E6%9F%A5%E8%AF%A2/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/8.jpg" class="responsive-img" alt="JAVA几种方式实现深拷贝">
+                        <img src="/medias/featureimages/21.jpg" class="responsive-img" alt="ES常用查询">
                         
-                        <span class="card-title">JAVA几种方式实现深拷贝</span>
+                        <span class="card-title">ES常用查询</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -770,8 +771,8 @@
                             
                             <i class="fas fa-bookmark fa-fw icon-category"></i>
                             
-                            <a href="/categories/java/" class="post-category">
-                                    java
+                            <a href="/categories/elasticsearch/" class="post-category">
+                                    elasticsearch
                                 </a>
                             
                             
@@ -781,8 +782,8 @@
                 
                 <div class="card-action article-tags">
                     
-                    <a href="/tags/%E6%B7%B1%E6%8B%B7%E8%B4%9D/">
-                        <span class="chip bg-color">深拷贝</span>
+                    <a href="/tags/%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/">
+                        <span class="chip bg-color">常用命令</span>
                     </a>
                     
                 </div>
@@ -796,13 +797,13 @@
                 下一篇&nbsp;<i class="fas fa-chevron-right"></i>
             </div>
             <div class="card">
-                <a href="/2021/10/11/kratos-4-0-3/">
+                <a href="/2021/10/11/ubuntu%E6%8C%82%E8%BD%BDapfs%E6%96%87%E4%BB%B6%E7%B3%BB%E7%BB%9F%E7%A3%81%E7%9B%98%EF%BC%88osx%E5%88%86%E5%8C%BA%EF%BC%89/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/4.jpg" class="responsive-img" alt="kratos-4.0.3">
+                        <img src="/medias/featureimages/7.jpg" class="responsive-img" alt="Ubuntu挂载Apfs文件系统磁盘（OSX分区）">
                         
-                        <span class="card-title">kratos-4.0.3</span>
+                        <span class="card-title">Ubuntu挂载Apfs文件系统磁盘（OSX分区）</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -819,8 +820,8 @@
                             
                             <i class="fas fa-bookmark fa-fw icon-category"></i>
                             
-                            <a href="/categories/uncategorized/" class="post-category">
-                                    uncategorized
+                            <a href="/categories/linux/" class="post-category">
+                                    linux
                                 </a>
                             
                             

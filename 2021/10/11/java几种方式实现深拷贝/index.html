@@ -95,39 +95,6 @@
     
   </li>
   
-  <li class="hide-on-med-and-down nav-item">
-    
-    <a href="/about" class="waves-effect waves-light">
-      
-      <i class="fas fa-user-circle" style="zoom: 0.6;"></i>
-      
-      <span>关于</span>
-    </a>
-    
-  </li>
-  
-  <li class="hide-on-med-and-down nav-item">
-    
-    <a href="/contact" class="waves-effect waves-light">
-      
-      <i class="fas fa-comments" style="zoom: 0.6;"></i>
-      
-      <span>留言板</span>
-    </a>
-    
-  </li>
-  
-  <li class="hide-on-med-and-down nav-item">
-    
-    <a href="/friends" class="waves-effect waves-light">
-      
-      <i class="fas fa-address-book" style="zoom: 0.6;"></i>
-      
-      <span>友情链接</span>
-    </a>
-    
-  </li>
-  
   <li>
     <a href="#searchModal" class="modal-trigger waves-effect waves-light">
       <i id="searchIcon" class="fas fa-search" title="搜索" style="zoom: 0.85;"></i>
@@ -194,39 +161,6 @@
 			    <i class="fa-fw fas fa-archive"></i>
 			
 			归档
-		</a>
-          
-        </li>
-        
-        <li class="m-nav-item">
-	  
-		<a href="/about" class="waves-effect waves-light">
-			
-			    <i class="fa-fw fas fa-user-circle"></i>
-			
-			关于
-		</a>
-          
-        </li>
-        
-        <li class="m-nav-item">
-	  
-		<a href="/contact" class="waves-effect waves-light">
-			
-			    <i class="fa-fw fas fa-comments"></i>
-			
-			留言板
-		</a>
-          
-        </li>
-        
-        <li class="m-nav-item">
-	  
-		<a href="/friends" class="waves-effect waves-light">
-			
-			    <i class="fa-fw fas fa-address-book"></i>
-			
-			友情链接
 		</a>
           
         </li>
@@ -472,106 +406,198 @@
         <hr class="clearfix">
 
         
+        <!-- 是否加载使用自带的 prismjs. -->
+        <link rel="stylesheet" href="/libs/prism/prism.css">
+        
 
         
 
         <div class="card-content article-card-content">
             <div id="articleContent">
                 <h1 id="准备"><a href="#准备" class="headerlink" title="准备"></a>准备</h1><p>定义两个类用于测试拷贝，类内容如下，目的是深拷贝一个User类的对象：</p>
-<p>@Data<br>@Accessors(chain = true) public class User { private Integer id; private Integer age; private String name; private Car car; private String category;<br>}</p>
-<p> </p>
-<p>@Data<br>@Accessors(chain = true) public class Car { private Integer id; private String color; private String name;<br>}</p>
-<h1 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h1><p>package com.demo; import com.fasterxml.jackson.core.JsonProcessingException; import com.fasterxml.jackson.databind.ObjectMapper; import lombok.Data; import lombok.experimental.Accessors; import java.io.*;</p>
-<p>@Data<br>@Accessors(chain = true) public class User implements Cloneable, Serializable { private Integer id; private Integer age; private String name; private Car car; private String category;</p>
-<pre><code>@Override public User clone() throws CloneNotSupportedException &#123; return (User) super.clone();
-&#125; /\*\* \* 方法一：最原始的实现方式，通过构造方法手创建
- \* 优点：
- \* 1.实现简单直观
- \* 2.不需要依赖额外的接口和第三方包
- \* 缺点：
- \* 1.成员变量发生变动需要修改方法，不满足开闭原则；
- \* 2.不具有可复用性； \*/
-public User copyUser1() &#123;
-    User copyUser \= new User()
-            .setId(this.getId())
-            .setName(this.getName())
-            .setAge(this.getAge())
-            .setCategory(this.getCategory()); if (this.getCar() != null) &#123;
-        copyUser.setCar(new Car().setId(this.getCar().getId())
-                .setColor(this.getCar().getColor())
-                .setName(this.getCar().getName()));
-    &#125; return copyUser;
-&#125; /\*\* \* 方法二：使用Object的clone方法实现
- \* 优点：
- \* 1.较方式1实现更简单，不需要关注copy细节；
- \* 2.不需要依赖第三方包；
- \* 3.不修改引用类型成员变量不需要修改代码
- \* 缺点：
- \* 1.需要实现Cloneable，重写父类clone方法，不满足里式替换；
- \* 2.且引用类型成员变量发生变动需要修改方法，不满足开闭原则；
- \* 3.不具有可复用性； \*/
-public User copyUser2() throws CloneNotSupportedException &#123;
-    User cloneUser \= this.clone(); if(this.getCar() != null) &#123;
-        cloneUser.setCar(this.getCar().clone());
-    &#125; return cloneUser;
-&#125; /\*\* \* 方法三：使用Java自带的流方式实现
- \* 优点：
- \* 1.不破坏类的封装，无需了解被copy对象的内部
- \* 2.不需要依赖第三方包
- \* 3.代码可复用
- \* 缺点：
- \* 1.需要实现Serializable接口，会有额外的开销 \*/
-public User copyUser3() throws IOException, ClassNotFoundException &#123;
-    ByteArrayOutputStream bos \= new ByteArrayOutputStream();
-    ObjectOutputStream oos \= new ObjectOutputStream(bos);
-    oos.writeObject(this);
-    ByteArrayInputStream bis \= new ByteArrayInputStream(bos.toByteArray());
-    ObjectInputStream ois \= new ObjectInputStream(bis); return (User) ois.readObject();
-&#125; /\*\* \* 方法四：使用第三方包Jackson实现
- \* 优点：
- \* 1.不破坏类的封装，无需了解被copy对象的内部
- \* 2.不需要实现接口
- \* 3.代码可复用
- \* 缺点：
- \* 1.需要依赖第三方包
- \* 2.内部实现复杂 \*/
-public User copyUser4() throws JsonProcessingException &#123;
-    ObjectMapper objectMapper \= new ObjectMapper(); return objectMapper.readValue(objectMapper.writeValueAsString(this),User.class);
-&#125;
-</code></pre>
-<p>}</p>
-<h1 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h1><p>package com.demo; import java.io.IOException; public class CopyDemo { public static void main(String[] args) throws IOException, CloneNotSupportedException, ClassNotFoundException {<br>        User user = new User().setAge(10).setName(“李四”).setId(3).setCategory(“工人”);<br>        user.setCar(new Car().setName(“保时捷”).setId(999).setColor(“黑色”));</p>
-<pre><code>    User copyUser1 \= user.copyUser1();
-    System.out.println(&quot;copyUser1:&quot; + copyUser1);
-    System.out.println(&quot;copyUser1与user对象是否是同一个:&quot; + (System.identityHashCode(user) == System.identityHashCode(copyUser1)));
-    System.out.println(&quot;copyUser1中的car与user中的car是否是同一个:&quot;+(System.identityHashCode(user.getCar()) == System.identityHashCode(copyUser1.getCar())));
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token annotation punctuation">@Data</span>
+<span class="token annotation punctuation">@Accessors</span><span class="token punctuation">(</span>chain <span class="token operator">=</span> <span class="token boolean">true</span><span class="token punctuation">)</span>
+<span class="token keyword">public</span> <span class="token keyword">class</span> <span class="token class-name">User</span> <span class="token punctuation">&#123;</span>
+    <span class="token keyword">private</span> <span class="token class-name">Integer</span> id<span class="token punctuation">;</span>
+    <span class="token keyword">private</span> <span class="token class-name">Integer</span> age
+    <span class="token keyword">private</span> <span class="token class-name">String</span> name<span class="token punctuation">;</span>
 
-    System.out.println(&quot;====================&quot;);
+    <span class="token keyword">private</span> <span class="token class-name">Car</span> car<span class="token punctuation">;</span>
 
-    User copyUser2 \= user.copyUser2();
-    System.out.println(&quot;copyUser2:&quot; + copyUser2);
-    System.out.println(&quot;copyUser2与user对象是否是同一个:&quot; + (System.identityHashCode(user) == System.identityHashCode(copyUser2)));
-    System.out.println(&quot;copyUser2中的car与user中的car是否是同一个:&quot;+(System.identityHashCode(user.getCar()) == System.identityHashCode(copyUser2.getCar())));
+    <span class="token keyword">private</span> <span class="token class-name">String</span> category<span class="token punctuation">;</span>
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
-    System.out.println(&quot;====================&quot;);
 
-    User copyUser3 \= user.copyUser3();
-    System.out.println(&quot;copyUser3:&quot; + copyUser3);
-    System.out.println(&quot;copyUser3与user对象是否是同一个:&quot; + (System.identityHashCode(user) == System.identityHashCode(copyUser3)));
-    System.out.println(&quot;copyUser3中的car与user中的car是否是同一个:&quot;+(System.identityHashCode(user.getCar()) == System.identityHashCode(copyUser3.getCar())));
 
-    System.out.println(&quot;====================&quot;);
+<pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token annotation punctuation">@Data</span>
+<span class="token annotation punctuation">@Accessors</span><span class="token punctuation">(</span>chain <span class="token operator">=</span> <span class="token boolean">true</span><span class="token punctuation">)</span>
+<span class="token keyword">public</span> <span class="token keyword">class</span> <span class="token class-name">Car</span> <span class="token punctuation">&#123;</span>
+    <span class="token keyword">private</span> <span class="token class-name">Integer</span> id<span class="token punctuation">;</span>
+    <span class="token keyword">private</span> <span class="token class-name">String</span> color<span class="token punctuation">;</span>
+    <span class="token keyword">private</span> <span class="token class-name">String</span> name<span class="token punctuation">;</span>
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
-    User copyUser4 \= user.copyUser4();
-    System.out.println(&quot;copyUser4:&quot; + copyUser4);
-    System.out.println(&quot;copyUser4与user对象是否是同一个:&quot; + (System.identityHashCode(user) == System.identityHashCode(copyUser4)));
-    System.out.println(&quot;copyUser4中的car与user中的car是否是同一个:&quot;+(System.identityHashCode(user.getCar()) == System.identityHashCode(copyUser4.getCar())));
+<h1 id="实现"><a href="#实现" class="headerlink" title="实现"></a>实现</h1><pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token keyword">package</span> <span class="token namespace">com<span class="token punctuation">.</span>demo</span><span class="token punctuation">;</span>
 
-&#125;
-</code></pre>
-<p>}</p>
-<p> </p>
-<h1 id="验证结果"><a href="#验证结果" class="headerlink" title="验证结果"></a>验证结果</h1><p>copyUser1:User(id&#x3D;3, age&#x3D;10, name&#x3D;李四, car&#x3D;Car(id&#x3D;999, color&#x3D;黑色, name&#x3D;保时捷), category&#x3D;工人)<br>copyUser1与user对象是否是同一个:false copyUser1中的car与user中的car是否是同一个:false<br>&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; copyUser2:User(id=3, age&#x3D;10, name&#x3D;李四, car&#x3D;Car(id&#x3D;999, color&#x3D;黑色, name&#x3D;保时捷), category&#x3D;工人)<br>copyUser2与user对象是否是同一个:false copyUser2中的car与user中的car是否是同一个:false<br>&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; copyUser3:User(id=3, age&#x3D;10, name&#x3D;李四, car&#x3D;Car(id&#x3D;999, color&#x3D;黑色, name&#x3D;保时捷), category&#x3D;工人)<br>copyUser3与user对象是否是同一个:false copyUser3中的car与user中的car是否是同一个:false<br>&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D; copyUser4:User(id=3, age&#x3D;10, name&#x3D;李四, car&#x3D;Car(id&#x3D;999, color&#x3D;黑色, name&#x3D;保时捷), category&#x3D;工人)<br>copyUser4与user对象是否是同一个:false copyUser4中的car与user中的car是否是同一个:false</p>
+<span class="token keyword">import</span> <span class="token import"><span class="token namespace">com<span class="token punctuation">.</span>fasterxml<span class="token punctuation">.</span>jackson<span class="token punctuation">.</span>core<span class="token punctuation">.</span></span><span class="token class-name">JsonProcessingException</span></span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token import"><span class="token namespace">com<span class="token punctuation">.</span>fasterxml<span class="token punctuation">.</span>jackson<span class="token punctuation">.</span>databind<span class="token punctuation">.</span></span><span class="token class-name">ObjectMapper</span></span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token import"><span class="token namespace">lombok<span class="token punctuation">.</span></span><span class="token class-name">Data</span></span><span class="token punctuation">;</span>
+<span class="token keyword">import</span> <span class="token import"><span class="token namespace">lombok<span class="token punctuation">.</span>experimental<span class="token punctuation">.</span></span><span class="token class-name">Accessors</span></span><span class="token punctuation">;</span>
+
+<span class="token keyword">import</span> <span class="token import"><span class="token namespace">java<span class="token punctuation">.</span>io<span class="token punctuation">.</span></span><span class="token operator">*</span></span><span class="token punctuation">;</span>
+
+<span class="token annotation punctuation">@Data</span>
+<span class="token annotation punctuation">@Accessors</span><span class="token punctuation">(</span>chain <span class="token operator">=</span> <span class="token boolean">true</span><span class="token punctuation">)</span>
+<span class="token keyword">public</span> <span class="token keyword">class</span> <span class="token class-name">User</span> <span class="token keyword">implements</span> <span class="token class-name">Cloneable</span><span class="token punctuation">,</span> <span class="token class-name">Serializable</span> <span class="token punctuation">&#123;</span>
+    <span class="token keyword">private</span> <span class="token class-name">Integer</span> id<span class="token punctuation">;</span>
+    <span class="token keyword">private</span> <span class="token class-name">Integer</span> age<span class="token punctuation">;</span>
+    <span class="token keyword">private</span> <span class="token class-name">String</span> name<span class="token punctuation">;</span>
+
+    <span class="token keyword">private</span> <span class="token class-name">Car</span> car<span class="token punctuation">;</span>
+
+    <span class="token keyword">private</span> <span class="token class-name">String</span> category<span class="token punctuation">;</span>
+
+    <span class="token annotation punctuation">@Override</span>
+    <span class="token keyword">public</span> <span class="token class-name">User</span> <span class="token function">clone</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">throws</span> <span class="token class-name">CloneNotSupportedException</span> <span class="token punctuation">&#123;</span>
+
+        <span class="token keyword">return</span> <span class="token punctuation">(</span><span class="token class-name">User</span><span class="token punctuation">)</span> <span class="token keyword">super</span><span class="token punctuation">.</span><span class="token function">clone</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+
+    <span class="token comment">/**
+     * 方法一：最原始的实现方式，通过构造方法手创建
+     * 优点：
+     * 1.实现简单直观
+     * 2.不需要依赖额外的接口和第三方包
+     * 缺点：
+     * 1.成员变量发生变动需要修改方法，不满足开闭原则；
+     * 2.不具有可复用性；
+     */</span>
+    <span class="token keyword">public</span> <span class="token class-name">User</span> <span class="token function">copyUser1</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+        <span class="token class-name">User</span> copyUser <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">User</span><span class="token punctuation">(</span><span class="token punctuation">)</span>
+                <span class="token punctuation">.</span><span class="token function">setId</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">getId</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+                <span class="token punctuation">.</span><span class="token function">setName</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">getName</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+                <span class="token punctuation">.</span><span class="token function">setAge</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">getAge</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+                <span class="token punctuation">.</span><span class="token function">setCategory</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">getCategory</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">!=</span> <span class="token keyword">null</span><span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+            copyUser<span class="token punctuation">.</span><span class="token function">setCar</span><span class="token punctuation">(</span><span class="token keyword">new</span> <span class="token class-name">Car</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">setId</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">getId</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+                    <span class="token punctuation">.</span><span class="token function">setColor</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">getColor</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+                    <span class="token punctuation">.</span><span class="token function">setName</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">getName</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">&#125;</span>
+        <span class="token keyword">return</span> copyUser<span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+
+    <span class="token comment">/**
+     * 方法二：使用Object的clone方法实现
+     * 优点：
+     * 1.较方式1实现更简单，不需要关注copy细节；
+     * 2.不需要依赖第三方包；
+     * 3.不修改引用类型成员变量不需要修改代码
+     * 缺点：
+     * 1.需要实现Cloneable，重写父类clone方法，不满足里式替换；
+     * 2.且引用类型成员变量发生变动需要修改方法，不满足开闭原则；
+     * 3.不具有可复用性；
+     */</span>
+    <span class="token keyword">public</span> <span class="token class-name">User</span> <span class="token function">copyUser2</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">throws</span> <span class="token class-name">CloneNotSupportedException</span> <span class="token punctuation">&#123;</span>
+        <span class="token class-name">User</span> cloneUser <span class="token operator">=</span> <span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">clone</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">if</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">!=</span> <span class="token keyword">null</span><span class="token punctuation">)</span> <span class="token punctuation">&#123;</span>
+            cloneUser<span class="token punctuation">.</span><span class="token function">setCar</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">clone</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token punctuation">&#125;</span>
+        <span class="token keyword">return</span> cloneUser<span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+
+    <span class="token comment">/**
+     * 方法三：使用Java自带的流方式实现
+     * 优点：
+     * 1.不破坏类的封装，无需了解被copy对象的内部
+     * 2.不需要依赖第三方包
+     * 3.代码可复用
+     * 缺点：
+     * 1.需要实现Serializable接口，会有额外的开销
+     */</span>
+    <span class="token keyword">public</span> <span class="token class-name">User</span> <span class="token function">copyUser3</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">throws</span> <span class="token class-name">IOException</span><span class="token punctuation">,</span> <span class="token class-name">ClassNotFoundException</span> <span class="token punctuation">&#123;</span>
+        <span class="token class-name">ByteArrayOutputStream</span> bos <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">ByteArrayOutputStream</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">ObjectOutputStream</span> oos <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">ObjectOutputStream</span><span class="token punctuation">(</span>bos<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        oos<span class="token punctuation">.</span><span class="token function">writeObject</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">ByteArrayInputStream</span> bis <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">ByteArrayInputStream</span><span class="token punctuation">(</span>bos<span class="token punctuation">.</span><span class="token function">toByteArray</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">ObjectInputStream</span> ois <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">ObjectInputStream</span><span class="token punctuation">(</span>bis<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">return</span> <span class="token punctuation">(</span><span class="token class-name">User</span><span class="token punctuation">)</span> ois<span class="token punctuation">.</span><span class="token function">readObject</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+
+    <span class="token comment">/**
+     * 方法四：使用第三方包Jackson实现
+     * 优点：
+     * 1.不破坏类的封装，无需了解被copy对象的内部
+     * 2.不需要实现接口
+     * 3.代码可复用
+     * 缺点：
+     * 1.需要依赖第三方包
+     * 2.内部实现复杂
+     */</span>
+    <span class="token keyword">public</span> <span class="token class-name">User</span> <span class="token function">copyUser4</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token keyword">throws</span> <span class="token class-name">JsonProcessingException</span> <span class="token punctuation">&#123;</span>
+        <span class="token class-name">ObjectMapper</span> objectMapper <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">ObjectMapper</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token keyword">return</span> objectMapper<span class="token punctuation">.</span><span class="token function">readValue</span><span class="token punctuation">(</span>objectMapper<span class="token punctuation">.</span><span class="token function">writeValueAsString</span><span class="token punctuation">(</span><span class="token keyword">this</span><span class="token punctuation">)</span><span class="token punctuation">,</span><span class="token class-name">User</span><span class="token punctuation">.</span><span class="token keyword">class</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">&#125;</span>
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+<h1 id="验证"><a href="#验证" class="headerlink" title="验证"></a>验证</h1><pre class="line-numbers language-java" data-language="java"><code class="language-java"><span class="token keyword">package</span> <span class="token namespace">com<span class="token punctuation">.</span>demo</span><span class="token punctuation">;</span>
+
+<span class="token keyword">import</span> <span class="token import"><span class="token namespace">java<span class="token punctuation">.</span>io<span class="token punctuation">.</span></span><span class="token class-name">IOException</span></span><span class="token punctuation">;</span>
+
+<span class="token keyword">public</span> <span class="token keyword">class</span> <span class="token class-name">CopyDemo</span> <span class="token punctuation">&#123;</span>
+
+    <span class="token keyword">public</span> <span class="token keyword">static</span> <span class="token keyword">void</span> <span class="token function">main</span><span class="token punctuation">(</span><span class="token class-name">String</span><span class="token punctuation">[</span><span class="token punctuation">]</span> args<span class="token punctuation">)</span> <span class="token keyword">throws</span> <span class="token class-name">IOException</span><span class="token punctuation">,</span> <span class="token class-name">CloneNotSupportedException</span><span class="token punctuation">,</span> <span class="token class-name">ClassNotFoundException</span> <span class="token punctuation">&#123;</span>
+        <span class="token class-name">User</span> user <span class="token operator">=</span> <span class="token keyword">new</span> <span class="token class-name">User</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">setAge</span><span class="token punctuation">(</span><span class="token number">10</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">setName</span><span class="token punctuation">(</span><span class="token string">"李四"</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">setId</span><span class="token punctuation">(</span><span class="token number">3</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">setCategory</span><span class="token punctuation">(</span><span class="token string">"工人"</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        user<span class="token punctuation">.</span><span class="token function">setCar</span><span class="token punctuation">(</span><span class="token keyword">new</span> <span class="token class-name">Car</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">setName</span><span class="token punctuation">(</span><span class="token string">"保时捷"</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">setId</span><span class="token punctuation">(</span><span class="token number">999</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">setColor</span><span class="token punctuation">(</span><span class="token string">"黑色"</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+
+        <span class="token class-name">User</span> copyUser1 <span class="token operator">=</span> user<span class="token punctuation">.</span><span class="token function">copyUser1</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"copyUser1:"</span> <span class="token operator">+</span> copyUser1<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"copyUser1与user对象是否是同一个:"</span> <span class="token operator">+</span> <span class="token punctuation">(</span><span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>user<span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>copyUser1<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"copyUser1中的car与user中的car是否是同一个:"</span><span class="token operator">+</span><span class="token punctuation">(</span><span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>user<span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>copyUser1<span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"===================="</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+        <span class="token class-name">User</span> copyUser2 <span class="token operator">=</span> user<span class="token punctuation">.</span><span class="token function">copyUser2</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"copyUser2:"</span> <span class="token operator">+</span> copyUser2<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"copyUser2与user对象是否是同一个:"</span> <span class="token operator">+</span> <span class="token punctuation">(</span><span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>user<span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>copyUser2<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"copyUser2中的car与user中的car是否是同一个:"</span><span class="token operator">+</span><span class="token punctuation">(</span><span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>user<span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>copyUser2<span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"===================="</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+        <span class="token class-name">User</span> copyUser3 <span class="token operator">=</span> user<span class="token punctuation">.</span><span class="token function">copyUser3</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"copyUser3:"</span> <span class="token operator">+</span> copyUser3<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"copyUser3与user对象是否是同一个:"</span> <span class="token operator">+</span> <span class="token punctuation">(</span><span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>user<span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>copyUser3<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"copyUser3中的car与user中的car是否是同一个:"</span><span class="token operator">+</span><span class="token punctuation">(</span><span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>user<span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>copyUser3<span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"===================="</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+        <span class="token class-name">User</span> copyUser4 <span class="token operator">=</span> user<span class="token punctuation">.</span><span class="token function">copyUser4</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"copyUser4:"</span> <span class="token operator">+</span> copyUser4<span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"copyUser4与user对象是否是同一个:"</span> <span class="token operator">+</span> <span class="token punctuation">(</span><span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>user<span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>copyUser4<span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+        <span class="token class-name">System</span><span class="token punctuation">.</span>out<span class="token punctuation">.</span><span class="token function">println</span><span class="token punctuation">(</span><span class="token string">"copyUser4中的car与user中的car是否是同一个:"</span><span class="token operator">+</span><span class="token punctuation">(</span><span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>user<span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token operator">==</span> <span class="token class-name">System</span><span class="token punctuation">.</span><span class="token function">identityHashCode</span><span class="token punctuation">(</span>copyUser4<span class="token punctuation">.</span><span class="token function">getCar</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+    <span class="token punctuation">&#125;</span>
+
+
+<span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
+
+<h1 id="验证结果"><a href="#验证结果" class="headerlink" title="验证结果"></a>验证结果</h1><pre class="line-numbers language-none"><code class="language-none">copyUser1:User(id&#x3D;3, age&#x3D;10, name&#x3D;李四, car&#x3D;Car(id&#x3D;999, color&#x3D;黑色, name&#x3D;保时捷), category&#x3D;工人)
+copyUser1与user对象是否是同一个:false
+copyUser1中的car与user中的car是否是同一个:false
+&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+copyUser2:User(id&#x3D;3, age&#x3D;10, name&#x3D;李四, car&#x3D;Car(id&#x3D;999, color&#x3D;黑色, name&#x3D;保时捷), category&#x3D;工人)
+copyUser2与user对象是否是同一个:false
+copyUser2中的car与user中的car是否是同一个:false
+&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+copyUser3:User(id&#x3D;3, age&#x3D;10, name&#x3D;李四, car&#x3D;Car(id&#x3D;999, color&#x3D;黑色, name&#x3D;保时捷), category&#x3D;工人)
+copyUser3与user对象是否是同一个:false
+copyUser3中的car与user中的car是否是同一个:false
+&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;&#x3D;
+copyUser4:User(id&#x3D;3, age&#x3D;10, name&#x3D;李四, car&#x3D;Car(id&#x3D;999, color&#x3D;黑色, name&#x3D;保时捷), category&#x3D;工人)
+copyUser4与user对象是否是同一个:false
+copyUser4中的car与user中的car是否是同一个:false<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+
 <h1 id="结论"><a href="#结论" class="headerlink" title="结论"></a>结论</h1><p>使用java原生推荐方法三，方法一、方法二缺点过于明显，第三方库的方式可以用方法四，spring boot默认的序列化反序列化就是Jackson，另外比照方法四同类的类库也能实现</p>
 
                 
@@ -839,7 +865,7 @@ public User copyUser4() throws JsonProcessingException &#123;
                                     css
                                 </a>
                             
-                            <a href="/categories/%E8%BD%AC%E8%BD%BD/" class="post-category">
+                            <a href="/categories/css/%E8%BD%AC%E8%BD%BD/" class="post-category">
                                     转载
                                 </a>
                             
@@ -869,13 +895,13 @@ public User copyUser4() throws JsonProcessingException &#123;
                 下一篇&nbsp;<i class="fas fa-chevron-right"></i>
             </div>
             <div class="card">
-                <a href="/2021/10/11/java%E8%AF%AD%E6%B3%95%E7%B3%96%E4%B9%8Blambda%E8%A1%A8%E8%BE%BE%E5%BC%8F%E3%80%81%E6%96%B9%E6%B3%95%E5%BC%95%E7%94%A8%EF%BC%88method-references%EF%BC%89/">
+                <a href="/2020/11/08/vue-cli%E6%89%93%E5%8C%85filenamehashing%E4%B8%8D%E7%94%9F%E6%95%88%E9%97%AE%E9%A2%98/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/11.jpg" class="responsive-img" alt="JAVA语法糖之Lambda表达式、方法引用（Method References）">
+                        <img src="/medias/featureimages/14.jpg" class="responsive-img" alt="vue-cli打包filenameHashing不生效问题">
                         
-                        <span class="card-title">JAVA语法糖之Lambda表达式、方法引用（Method References）</span>
+                        <span class="card-title">vue-cli打包filenameHashing不生效问题</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -886,19 +912,27 @@ public User copyUser4() throws JsonProcessingException &#123;
                     </div>
                     <div class="publish-info">
                             <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2021-10-11
+                                <i class="far fa-clock fa-fw icon-date"></i>2020-11-08
                             </span>
                         <span class="publish-author">
                             
                             <i class="fas fa-bookmark fa-fw icon-category"></i>
                             
-                            <a href="/categories/java/" class="post-category">
-                                    java
+                            <a href="/categories/vue/" class="post-category">
+                                    vue
                                 </a>
                             
                             
                         </span>
                     </div>
+                </div>
+                
+                <div class="card-action article-tags">
+                    
+                    <a href="/tags/%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/">
+                        <span class="chip bg-color">问题解决</span>
+                    </a>
+                    
                 </div>
                 
             </div>

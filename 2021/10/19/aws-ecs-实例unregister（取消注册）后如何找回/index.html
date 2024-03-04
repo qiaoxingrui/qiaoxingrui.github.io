@@ -95,39 +95,6 @@
     
   </li>
   
-  <li class="hide-on-med-and-down nav-item">
-    
-    <a href="/about" class="waves-effect waves-light">
-      
-      <i class="fas fa-user-circle" style="zoom: 0.6;"></i>
-      
-      <span>关于</span>
-    </a>
-    
-  </li>
-  
-  <li class="hide-on-med-and-down nav-item">
-    
-    <a href="/contact" class="waves-effect waves-light">
-      
-      <i class="fas fa-comments" style="zoom: 0.6;"></i>
-      
-      <span>留言板</span>
-    </a>
-    
-  </li>
-  
-  <li class="hide-on-med-and-down nav-item">
-    
-    <a href="/friends" class="waves-effect waves-light">
-      
-      <i class="fas fa-address-book" style="zoom: 0.6;"></i>
-      
-      <span>友情链接</span>
-    </a>
-    
-  </li>
-  
   <li>
     <a href="#searchModal" class="modal-trigger waves-effect waves-light">
       <i id="searchIcon" class="fas fa-search" title="搜索" style="zoom: 0.85;"></i>
@@ -194,39 +161,6 @@
 			    <i class="fa-fw fas fa-archive"></i>
 			
 			归档
-		</a>
-          
-        </li>
-        
-        <li class="m-nav-item">
-	  
-		<a href="/about" class="waves-effect waves-light">
-			
-			    <i class="fa-fw fas fa-user-circle"></i>
-			
-			关于
-		</a>
-          
-        </li>
-        
-        <li class="m-nav-item">
-	  
-		<a href="/contact" class="waves-effect waves-light">
-			
-			    <i class="fa-fw fas fa-comments"></i>
-			
-			留言板
-		</a>
-          
-        </li>
-        
-        <li class="m-nav-item">
-	  
-		<a href="/friends" class="waves-effect waves-light">
-			
-			    <i class="fa-fw fas fa-address-book"></i>
-			
-			友情链接
 		</a>
           
         </li>
@@ -468,28 +402,28 @@
         <hr class="clearfix">
 
         
+        <!-- 是否加载使用自带的 prismjs. -->
+        <link rel="stylesheet" href="/libs/prism/prism.css">
+        
 
         
 
         <div class="card-content article-card-content">
             <div id="articleContent">
-                <p><a target="_blank" rel="noopener" href="https://img2020.cnblogs.com/blog/2461022/202110/2461022-20211019215824757-1373482160.png"></a><img src="/ueditor/php/upload/image/20211108/1636349136190796.png" alt="a.png" title="1636349136190796.png">    </p>
+                <p><a target="_blank" rel="noopener" href="https://img2020.cnblogs.com/blog/2461022/202110/2461022-20211019215824757-1373482160.png"></a><img src="/images/1636349136190796.png" alt="a.png" title="1636349136190796.png"> </p>
 <h3 id="问题描述"><a href="#问题描述" class="headerlink" title="问题描述"></a>问题描述</h3><p>如果不小心取消注册（点击了上图按钮）会导致ecs中的任务无法和ec2实例关联也无法通过aws-cli执行发布部署</p>
 <h3 id="问题分析"><a href="#问题分析" class="headerlink" title="问题分析"></a>问题分析</h3><p>aws ecs是通过amazon-ecs-agent容器管理ecs的，遂从此入手查阅文档，文档截图如下，虽然文档描述的agent虽然是通过服务启动的但是不影响我们对问题的理解，观察到ec2实例中的agent在疯狂重启，猜想问题出在agent.db</p>
-<p><img src="/ueditor/php/upload/image/20211108/1636349170925095.png" alt="b.png" title="1636349170925095.png"></p>
+<p><img src="/images/1636349170925095.png" alt="b.png" title="1636349170925095.png"></p>
 <h3 id="解决办法"><a href="#解决办法" class="headerlink" title="解决办法"></a>解决办法</h3><ol>
-<li></li>
 <li><p>重启ec2实例（在没找到解决方案之前我已经重启过了，想着是不是万能重启大法就可以，然并卵，之所以写重启是因为我觉得重启会触发agent镜像重启然后取创建agent.db）</p>
 </li>
-<li></li>
 <li><p>cd &#x2F;var&#x2F;lib&#x2F;ecs&#x2F;data</p>
 </li>
-<li></li>
-<li><p>mv agent.db agent.db.bk</p>
+<li><p>mv agent.db agent.db.bk</p>
 </li>
 </ol>
 <p>之后回到aws控制台刷新等待实例+1，如下图ECS实例又回来了</p>
-<p><img src="/ueditor/php/upload/image/20211108/1636349210483616.png" alt="c.png" title="1636349210483616.png"></p>
+<p><img src="/images/1636349210483616.png" alt="c.png" title="1636349210483616.png"></p>
 
                 
             </div>
@@ -725,13 +659,13 @@
             <div class="article-badge left-badge text-color">
                 <i class="fas fa-chevron-left"></i>&nbsp;上一篇</div>
             <div class="card">
-                <a href="/2021/10/28/mongodb%E5%88%A0%E5%AD%97%E6%AE%B5%EF%BC%8C%E5%AD%97%E6%AE%B5%E6%94%B9%E5%90%8D/">
+                <a href="/2021/11/12/linux%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/2.jpg" class="responsive-img" alt="mongodb删字段，字段改名">
+                        <img src="/medias/featureimages/13.jpg" class="responsive-img" alt="linux常用命令">
                         
-                        <span class="card-title">mongodb删字段，字段改名</span>
+                        <span class="card-title">linux常用命令</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -742,19 +676,27 @@
                     </div>
                     <div class="publish-info">
                         <span class="publish-date">
-                            <i class="far fa-clock fa-fw icon-date"></i>2021-10-28
+                            <i class="far fa-clock fa-fw icon-date"></i>2021-11-12
                         </span>
                         <span class="publish-author">
                             
                             <i class="fas fa-bookmark fa-fw icon-category"></i>
                             
-                            <a href="/categories/mongodb/" class="post-category">
-                                    mongodb
+                            <a href="/categories/linux/" class="post-category">
+                                    linux
                                 </a>
                             
                             
                         </span>
                     </div>
+                </div>
+                
+                <div class="card-action article-tags">
+                    
+                    <a href="/tags/%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/">
+                        <span class="chip bg-color">常用命令</span>
+                    </a>
+                    
                 </div>
                 
             </div>
@@ -766,13 +708,13 @@
                 下一篇&nbsp;<i class="fas fa-chevron-right"></i>
             </div>
             <div class="card">
-                <a href="/2021/10/11/es%E6%9F%A5%E8%AF%A2id%E5%9C%A8%E6%9F%90%E4%B8%AA%E5%8C%BA%E9%97%B4%E5%86%85/">
+                <a href="/2021/10/11/ES%E5%B8%B8%E7%94%A8%E6%9F%A5%E8%AF%A2/">
                     <div class="card-image">
                         
                         
-                        <img src="/medias/featureimages/9.jpg" class="responsive-img" alt="ES查询ID在某个区间内">
+                        <img src="/medias/featureimages/21.jpg" class="responsive-img" alt="ES常用查询">
                         
-                        <span class="card-title">ES查询ID在某个区间内</span>
+                        <span class="card-title">ES常用查询</span>
                     </div>
                 </a>
                 <div class="card-content article-content">
@@ -796,6 +738,14 @@
                             
                         </span>
                     </div>
+                </div>
+                
+                <div class="card-action article-tags">
+                    
+                    <a href="/tags/%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/">
+                        <span class="chip bg-color">常用命令</span>
+                    </a>
+                    
                 </div>
                 
             </div>
