@@ -4,6 +4,33 @@
   
     
     <entry>
+      <title>arthas分析客户现场请求过慢</title>
+      <link href="/2023/10/13/Server%E6%8E%A5%E5%8F%A3%E8%BF%94%E5%9B%9E%E6%85%A2%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/"/>
+      <url>/2023/10/13/Server%E6%8E%A5%E5%8F%A3%E8%BF%94%E5%9B%9E%E6%85%A2%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/</url>
+      
+        <content type="html"><![CDATA[<h2 id="问题描述："><a href="#问题描述：" class="headerlink" title="问题描述："></a>问题描述：</h2><p>客户反馈在使用过程中每次请求数据返回速度都很慢，并且时必现问题，因为客户是内网环境（客户的网络环境不允许外网访问）所以让同事到现场排查问题，发现所有的后端网络请求都很慢，不过目前项目在本地及开发、测试环境运行均无法复现问题。</p><h2 id="排查步骤："><a href="#排查步骤：" class="headerlink" title="排查步骤："></a>排查步骤：</h2><h3 id="1-打包一个包含arthas-jar的docker镜像重新部署"><a href="#1-打包一个包含arthas-jar的docker镜像重新部署" class="headerlink" title="1.打包一个包含arthas.jar的docker镜像重新部署"></a>1.打包一个包含arthas.jar的docker镜像重新部署</h3><h3 id="2-运行容器后进入容器"><a href="#2-运行容器后进入容器" class="headerlink" title="2.运行容器后进入容器"></a>2.运行容器后进入容器</h3><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">docker</span> <span class="token builtin class-name">exec</span> <span class="token parameter variable">-it</span> <span class="token punctuation">[</span>容器名<span class="token punctuation">]</span> <span class="token function">sh</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre><h3 id="3-启动arthas"><a href="#3-启动arthas" class="headerlink" title="3.启动arthas"></a>3.启动arthas</h3><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash"><span class="token function">java</span> <span class="token parameter variable">-jar</span> arthas-boot.jar  <span class="token number">1</span><span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre><h3 id="4-追踪疑似慢的方法"><a href="#4-追踪疑似慢的方法" class="headerlink" title="4.追踪疑似慢的方法"></a>4.追踪疑似慢的方法</h3><p>这里追踪的时一个全局的filter方法，因为每个请求都慢所以怀疑是这里</p><pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">trace com.xxx.BodyReaderFilter doFilter<span aria-hidden="true" class="line-numbers-rows"><span></span></span></code></pre><h3 id="5-通过curl请求该方法并查看arthas日志"><a href="#5-通过curl请求该方法并查看arthas日志" class="headerlink" title="5.通过curl请求该方法并查看arthas日志"></a>5.通过curl请求该方法并查看arthas日志</h3><p>这里找到了慢的原因是log4j打印日志的时候用了5s<br><img src="/images/arthas-sl.png" alt="日志截图"></p><h2 id="解决方案："><a href="#解决方案：" class="headerlink" title="解决方案："></a>解决方案：</h2><p>注释日志重新打包问题解决</p><h3 id="小结："><a href="#小结：" class="headerlink" title="小结："></a>小结：</h3><p>这个日志打印在其他机器上都没有出现过很慢的情况，我们模拟了和客户一样的系统环境但是均未复现，这里猜想是log4j自身缺陷或者客户服务器硬件的兼容问题，后续并没有深究具体原因。</p>]]></content>
+      
+      
+      <categories>
+          
+          <category> arthas </category>
+          
+          <category> java </category>
+          
+      </categories>
+      
+      
+        <tags>
+            
+            <tag> 问题解决 </tag>
+            
+        </tags>
+      
+    </entry>
+    
+    
+    
+    <entry>
       <title>记录一下部署AWS EKS的坑</title>
       <link href="/2023/08/20/%E8%AE%B0%E5%BD%95%E4%B8%80%E4%B8%8B%E9%83%A8%E7%BD%B2AWS%20EKS%E7%9A%84%E5%9D%91/"/>
       <url>/2023/08/20/%E8%AE%B0%E5%BD%95%E4%B8%80%E4%B8%8B%E9%83%A8%E7%BD%B2AWS%20EKS%E7%9A%84%E5%9D%91/</url>
