@@ -436,6 +436,10 @@
 
 
 <span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
+<h3 id="ES解除readonly状态"><a href="#ES解除readonly状态" class="headerlink" title="ES解除readonly状态"></a>ES解除readonly状态</h3><pre class="line-numbers language-none"><code class="language-none">curl -X PUT &quot;localhost:9200&#x2F;_settings&quot; -H &#39;Content-Type: application&#x2F;json&#39; -d &#39;&#123;
+  &quot;index.blocks.read_only_allow_delete&quot;: null
+&#125;&#39;
+<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span></span></code></pre>
                 
             </div>
             <hr/>
