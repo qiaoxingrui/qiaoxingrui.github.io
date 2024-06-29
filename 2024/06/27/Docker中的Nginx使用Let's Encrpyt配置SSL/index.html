@@ -518,7 +518,9 @@ certbot certonly <span class="token parameter variable">--webroot</span> --webro
     <span class="token punctuation">&#125;</span>
 <span class="token punctuation">&#125;</span><span aria-hidden="true" class="line-numbers-rows"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></span></code></pre>
 
-
+<h2 id="关于通配符类型的域名申请证书"><a href="#关于通配符类型的域名申请证书" class="headerlink" title="关于通配符类型的域名申请证书"></a>关于通配符类型的域名申请证书</h2><p>​	申请证书和续期的命令如下，申请命令执行后会生成一个txt record需要你添加到你的dns解析中，另外续期也需要更新txt record所以需要借助dns运营商的api之类的才能自动续期，本次实践没有做这块</p>
+<pre class="line-numbers language-bash" data-language="bash"><code class="language-bash">certbot <span class="token parameter variable">-d</span> <span class="token string">"*.example.com"</span> <span class="token parameter variable">--manual</span> --preferred-challenges dns certonly
+certbot renew <span class="token parameter variable">--manual</span> --preferred-challenges dns<span aria-hidden="true" class="line-numbers-rows"><span></span><span></span></span></code></pre>
 
 
                 
