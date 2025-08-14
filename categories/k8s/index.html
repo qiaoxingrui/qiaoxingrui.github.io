@@ -4,7 +4,7 @@
 
 <head>
     <meta charset="utf-8">
-    <meta name="keywords" content="分类: k8s, Java Spring 后端 微服务">
+    <meta name="keywords" content="分类: K8S, Java Spring 后端 微服务">
     <meta name="description" content="">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
@@ -16,7 +16,7 @@
     <!-- Global site tag (gtag.js) - Google Analytics -->
 
 
-    <title>分类: k8s | 小家猫的笔记</title>
+    <title>分类: K8S | 小家猫的笔记</title>
     <link rel="icon" type="image/png" href="/favicon.png">
 
     <link rel="stylesheet" type="text/css" href="/libs/awesome/css/all.css">
@@ -433,7 +433,7 @@
                 
                 <a href="/categories/k8s/" title="k8s: 1">
                     <span class="chip center-align waves-effect waves-light
-                             chip-active "
+                             chip-default "
                             style="background-color: #D5F5E3;">k8s
                         <span class="tag-length">1</span>
                     </span>
@@ -512,6 +512,15 @@
                 </a>
                 
                 
+                <a href="/categories/k8s/" title="K8S: 2">
+                    <span class="chip center-align waves-effect waves-light
+                             chip-active "
+                            style="background-color: #D5F5E3;">K8S
+                        <span class="tag-length">2</span>
+                    </span>
+                </a>
+                
+                
             </div>
         </div>
     </div>
@@ -525,35 +534,31 @@
             
             <div class="article tag-post col s12 m6 l4" data-aos="zoom-in">
                 <div class="card">
-                    <a href="/2023/05/17/%E4%BD%BF%E7%94%A8k8s%20configmap%E4%BF%9D%E5%AD%98nginx.conf%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%20/">
+                    <a href="/2025/08/15/Kubernetes%E4%B8%AD%E7%9A%84SSL%E8%AF%81%E4%B9%A6%E7%AE%A1%E7%90%86%E5%85%A8%E8%A7%A3%E6%9E%90/">
                         <div class="card-image tag-image">
                             
                             
-                            <img src="/medias/featureimages/6.jpg" class="responsive-img" alt="使用k8s configmap保存nginx.conf配置文件 ">
+                            <img src="/medias/featureimages/0.jpg" class="responsive-img" alt="Kubernetes 中的 SSL 证书管理全解析">
                             
-                            <span class="card-title">使用k8s configmap保存nginx.conf配置文件 </span>
+                            <span class="card-title">Kubernetes 中的 SSL 证书管理全解析</span>
                         </div>
                     </a>
                     <div class="card-content article-content">
                         <div class="summary block-with-text">
                             
-                                
-创建一个包含 Nginx 配置的文件（例如 nginx.conf）。
-
-创建一个 ConfigMap 对象，将 Nginx 配置文件添加为其中的数据。
-kubectl create configmap nginx-config --fro
+                                Kubernetes 中的 SSL 证书管理全解析：cert-manager 原理与组件在 Kubernetes 集群中，如果要为服务提供 HTTPS 访问，最常见的做法是通过 Ingress Controller 配合 cert-mana
                             
                         </div>
                         <div class="publish-info">
                             <span class="publish-date">
-                                <i class="far fa-clock fa-fw icon-date"></i>2023-05-17
+                                <i class="far fa-clock fa-fw icon-date"></i>2025-08-15
                             </span>
                             <span class="publish-author">
                                 
                                 <i class="fas fa-bookmark fa-fw icon-category"></i>
                                 
                                 <a href="/categories/k8s/" class="post-category">
-                                    k8s
+                                    K8S
                                 </a>
                                 
                                 
@@ -561,6 +566,68 @@ kubectl create configmap nginx-config --fro
                         </div>
                     </div>
 
+                    
+                    <div class="card-action article-tags">
+                        
+                        <a href="/tags/ssl/">
+                            <span class="chip bg-color">SSL</span>
+                        </a>
+                        
+                        <a href="/tags/k8s/">
+                            <span class="chip bg-color">K8S</span>
+                        </a>
+                        
+                    </div>
+                    
+                </div>
+            </div>
+            
+            <div class="article tag-post col s12 m6 l4" data-aos="zoom-in">
+                <div class="card">
+                    <a href="/2025/08/15/Kubernetes%20cert-manager%20%E8%AF%81%E4%B9%A6%E8%BF%87%E6%9C%9F%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5%E4%B8%8E%E4%BF%AE%E5%A4%8D%E8%AE%B0%E5%BD%95/">
+                        <div class="card-image tag-image">
+                            
+                            
+                            <img src="/medias/featureimages/10.jpg" class="responsive-img" alt="Kubernetes cert-manager 证书过期问题排查与修复记录">
+                            
+                            <span class="card-title">Kubernetes cert-manager 证书过期问题排查与修复记录</span>
+                        </div>
+                    </a>
+                    <div class="card-content article-content">
+                        <div class="summary block-with-text">
+                            
+                                Kubernetes cert-manager 证书过期问题排查与修复记录最近在维护公司的 GitLab 服务时，遇到了一次证书过期的问题。趁着这次处理的过程，我把整个排查、修复的过程记录下来，希望对同样在 Kubernetes 中用 ce
+                            
+                        </div>
+                        <div class="publish-info">
+                            <span class="publish-date">
+                                <i class="far fa-clock fa-fw icon-date"></i>2025-08-15
+                            </span>
+                            <span class="publish-author">
+                                
+                                <i class="fas fa-bookmark fa-fw icon-category"></i>
+                                
+                                <a href="/categories/k8s/" class="post-category">
+                                    K8S
+                                </a>
+                                
+                                
+                            </span>
+                        </div>
+                    </div>
+
+                    
+                    <div class="card-action article-tags">
+                        
+                        <a href="/tags/ssl/">
+                            <span class="chip bg-color">SSL</span>
+                        </a>
+                        
+                        <a href="/tags/k8s/">
+                            <span class="chip bg-color">K8S</span>
+                        </a>
+                        
+                    </div>
                     
                 </div>
             </div>
@@ -632,7 +699,7 @@ kubectl create configmap nginx-config --fro
         <div class="col s12 m8 l8 copy-right">
             Copyright&nbsp;&copy;
             
-                <span id="year">2019-2024</span>
+                <span id="year">2019-2025</span>
             
             <span id="year">2019</span>
             <a href="/about" target="_blank">小家猫</a>
