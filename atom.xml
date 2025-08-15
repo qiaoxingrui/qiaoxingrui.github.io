@@ -1,0 +1,844 @@
+<?xml version="1.0"?>
+<feed xmlns="http://www.w3.org/2005/Atom">
+    <id>https://qiaoxingrui.github.io</id>
+    <title>小家猫的笔记</title>
+    <subtitle></subtitle>
+    <icon>https://qiaoxingrui.github.io/images/favicon.ico</icon>
+    <link href="https://qiaoxingrui.github.io" />
+    <author>
+      <name>小家猫</name>
+    </author>
+    <updated>2025-08-15T00:00:00.000Z</updated>
+    <category term="Java Spring 后端 微服务、Docker、K8S" />
+    <entry>
+        <id>https://qiaoxingrui.github.io/2025/08/15/Kubernetes%20cert-manager%20%E8%AF%81%E4%B9%A6%E8%BF%87%E6%9C%9F%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5%E4%B8%8E%E4%BF%AE%E5%A4%8D%E8%AE%B0%E5%BD%95/</id>
+        <title>Kubernetes cert-manager 证书过期问题排查与修复记录</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2025/08/15/Kubernetes%20cert-manager%20%E8%AF%81%E4%B9%A6%E8%BF%87%E6%9C%9F%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5%E4%B8%8E%E4%BF%AE%E5%A4%8D%E8%AE%B0%E5%BD%95/"/>
+        <content type="html">&lt;h1 id=&#34;kubernetes-cert-manager-证书过期问题排查与修复记录&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#kubernetes-cert-manager-证书过期问题排查与修复记录&#34;&gt;#&lt;/a&gt; &lt;strong&gt;Kubernetes cert-manager 证书过期问题排查与修复记录&lt;/strong&gt;&lt;/h1&gt;
+&lt;p&gt;最近在维护公司的 GitLab 服务时，遇到了一次证书过期的问题。趁着这次处理的过程，我把整个排查、修复的过程记录下来，希望对同样在 Kubernetes 中用 &lt;strong&gt;cert-manager&lt;/strong&gt; 管理证书的朋友有所帮助。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2 id=&#34;背景&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#背景&#34;&gt;#&lt;/a&gt; &lt;strong&gt;背景&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;我们的 GitLab 服务部署在 Kubernetes 集群中，使用 &lt;strong&gt;cert-manager&lt;/strong&gt; 自动管理 TLS 证书。&lt;/p&gt;
+&lt;p&gt;域名分成两个部分：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;span class=&#34;exturl&#34; data-url=&#34;aHR0cDovL2dpdGxhYi54eHh4Lm5ldA==&#34;&gt;gitlab.xxxx.net&lt;/span&gt; → &lt;strong&gt;nginx ingress&lt;/strong&gt;&lt;/li&gt;
+&lt;li&gt;&lt;span class=&#34;exturl&#34; data-url=&#34;aHR0cDovL3JlZ2lzdHJ5Lnh4eHgubmV0&#34;&gt;registry.xxxx.net&lt;/span&gt; → &lt;strong&gt;Kong ingress&lt;/strong&gt;&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;证书签发方式是 &lt;strong&gt;Let’s Encrypt&lt;/strong&gt; + &lt;strong&gt;HTTP-01&lt;/strong&gt; 验证，Issuer 配置为 ClusterIssuer。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2 id=&#34;问题现象&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#问题现象&#34;&gt;#&lt;/a&gt; &lt;strong&gt;问题现象&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;一天访问 GitLab 的 Registry 地址时，浏览器直接报：&lt;/p&gt;
+&lt;blockquote&gt;
+&lt;p&gt;&lt;strong&gt;证书已过期&lt;/strong&gt;（NET::ERR_CERT_DATE_INVALID）&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;p&gt;检查 GitLab 页面，&lt;span class=&#34;exturl&#34; data-url=&#34;aHR0cDovL2dpdGxhYi54eHh4Lm5ldA==&#34;&gt;gitlab.xxxx.net&lt;/span&gt; 访问正常，但 Registry 域名的证书已经失效。&lt;/p&gt;
+&lt;p&gt;我第一反应是 cert-manager 可能续期失败，于是准备排查。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2 id=&#34;排查过程&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#排查过程&#34;&gt;#&lt;/a&gt; &lt;strong&gt;排查过程&lt;/strong&gt;&lt;/h2&gt;
+&lt;h3 id=&#34;1-查看证书状态&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#1-查看证书状态&#34;&gt;#&lt;/a&gt; &lt;strong&gt;1. 查看证书状态&lt;/strong&gt;&lt;/h3&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;kubectl &lt;span class=&#34;token parameter variable&#34;&gt;-n&lt;/span&gt; gitlab get certificate&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;kubectl &lt;span class=&#34;token parameter variable&#34;&gt;-n&lt;/span&gt; gitlab describe certificate gitlab-ng-tls&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;发现 gitlab-ng-tls 状态是 Ready=True，有效期到 2025-11-12，说明它刚刚续签成功。&lt;/p&gt;
+&lt;p&gt;但 Registry 对应的证书没有更新，还是旧的到期时间。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h3 id=&#34;2-找到-challenge-和-solver-ingress&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#2-找到-challenge-和-solver-ingress&#34;&gt;#&lt;/a&gt; &lt;strong&gt;2. 找到 Challenge 和 solver ingress&lt;/strong&gt;&lt;/h3&gt;
+&lt;p&gt;HTTP-01 验证时，cert-manager 会创建一个临时的 &lt;strong&gt;solver ingress&lt;/strong&gt; 来处理验证请求。&lt;/p&gt;
+&lt;p&gt;我通过 label 查找：&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;kubectl &lt;span class=&#34;token parameter variable&#34;&gt;-n&lt;/span&gt; gitlab get ing &lt;span class=&#34;token parameter variable&#34;&gt;-l&lt;/span&gt; acme.cert-manager.io/http01-solver&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;true&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;输出：&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;cm-acme-http-solver-8jkhj   gitlab.xxxx.net&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;cm-acme-http-solver-tlbj6   registry.xxxx.net&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;显然，GitLab 的验证走 cm-acme-http-solver-8jkhj，Registry 的走 cm-acme-http-solver-tlbj6。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h3 id=&#34;3-验证-http-访问是否可达&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#3-验证-http-访问是否可达&#34;&gt;#&lt;/a&gt; &lt;strong&gt;3. 验证 HTTP 访问是否可达&lt;/strong&gt;&lt;/h3&gt;
+&lt;p&gt;获取最新的 Challenge token：&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token assign-left variable&#34;&gt;CH&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;token variable&#34;&gt;&lt;span class=&#34;token variable&#34;&gt;$(&lt;/span&gt;kubectl &lt;span class=&#34;token parameter variable&#34;&gt;-n&lt;/span&gt; gitlab get challenge --sort-by&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;.metadata.creationTimestamp &lt;span class=&#34;token parameter variable&#34;&gt;-o&lt;/span&gt; name &lt;span class=&#34;token operator&#34;&gt;|&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;tail&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-1&lt;/span&gt;&lt;span class=&#34;token variable&#34;&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token assign-left variable&#34;&gt;TOKEN&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;token variable&#34;&gt;&lt;span class=&#34;token variable&#34;&gt;$(&lt;/span&gt;kubectl &lt;span class=&#34;token parameter variable&#34;&gt;-n&lt;/span&gt; gitlab describe &lt;span class=&#34;token string&#34;&gt;&#34;&lt;span class=&#34;token variable&#34;&gt;$CH&lt;/span&gt;&#34;&lt;/span&gt; &lt;span class=&#34;token operator&#34;&gt;|&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;sed&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-n&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#39;s/^  Token:[[:space:]]*//p&#39;&lt;/span&gt; &lt;span class=&#34;token operator&#34;&gt;|&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;tail&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-1&lt;/span&gt;&lt;span class=&#34;token variable&#34;&gt;)&lt;/span&gt;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;curl&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-i&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#34;http://gitlab.xxxx.net/.well-known/acme-challenge/&lt;span class=&#34;token variable&#34;&gt;$TOKEN&lt;/span&gt;&#34;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;结果返回：&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;HTTP/1.1 &lt;span class=&#34;token number&#34;&gt;308&lt;/span&gt; Permanent Redirect&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;Location: https://gitlab.xxxx.net/&lt;span class=&#34;token punctuation&#34;&gt;..&lt;/span&gt;.&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;这意味着 HTTP 请求被强制跳转到 HTTPS，ACME 验证失败。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h3 id=&#34;4-调整-solver-ingress&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#4-调整-solver-ingress&#34;&gt;#&lt;/a&gt; &lt;strong&gt;4. 调整 solver ingress&lt;/strong&gt;&lt;/h3&gt;
+&lt;p&gt;我针对 GitLab 的 solver ingress 做了三件事：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;指定 ingressClass&lt;/strong&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;kubectl &lt;span class=&#34;token parameter variable&#34;&gt;-n&lt;/span&gt; gitlab patch ingress cm-acme-http-solver-8jkhj &lt;span class=&#34;token punctuation&#34;&gt;\&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  &lt;span class=&#34;token parameter variable&#34;&gt;--type&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#39;json&#39;&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;\&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  &lt;span class=&#34;token parameter variable&#34;&gt;-p&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#39;[&amp;#123;&#34;op&#34;:&#34;add&#34;,&#34;path&#34;:&#34;/spec/ingressClassName&#34;,&#34;value&#34;:&#34;nginx&#34;&amp;#125;]&#39;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;关闭 HTTP → HTTPS 重定向&lt;/strong&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;kubectl &lt;span class=&#34;token parameter variable&#34;&gt;-n&lt;/span&gt; gitlab annotate ingress cm-acme-http-solver-8jkhj &lt;span class=&#34;token punctuation&#34;&gt;\&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  nginx.ingress.kubernetes.io/ssl-redirect&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#34;false&#34;&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;\&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  nginx.ingress.kubernetes.io/force-ssl-redirect&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#34;false&#34;&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;\&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  &lt;span class=&#34;token parameter variable&#34;&gt;--overwrite&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;ol&gt;
+&lt;li&gt;&lt;strong&gt;删除失败的 Order 重新触发&lt;/strong&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;kubectl &lt;span class=&#34;token parameter variable&#34;&gt;-n&lt;/span&gt; gitlab delete order gitlab-registry-tls-xxxx&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;hr /&gt;
+&lt;h2 id=&#34;原因分析&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#原因分析&#34;&gt;#&lt;/a&gt; &lt;strong&gt;原因分析&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;通过这次排查，我总结出问题的根本原因：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;HTTP-01 验证依赖域名的 &lt;strong&gt;80 端口&lt;/strong&gt;直通到 solver pod。&lt;/li&gt;
+&lt;li&gt;我们的 nginx ingress 默认开启了 HTTPS 强制跳转，导致 ACME 在访问 http://.../.well-known/acme-challenge/... 时被 308 重定向到 HTTPS，从而验证失败。&lt;/li&gt;
+&lt;li&gt;Registry 用的是 Kong ingress，而 Kong 没有正确处理 solver ingress 流量，也可能拦截了 80 端口请求。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;最终，GitLab 的证书是我手动调整 ingress 规则后成功续签的；Registry 的证书需要进一步处理 Kong ingress 配置，或者改用 DNS-01 验证。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2 id=&#34;修复结果&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#修复结果&#34;&gt;#&lt;/a&gt; &lt;strong&gt;修复结果&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;执行修复步骤后，查看证书信息：&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;kubectl &lt;span class=&#34;token parameter variable&#34;&gt;-n&lt;/span&gt; gitlab get secret gitlab-ng-tls &lt;span class=&#34;token parameter variable&#34;&gt;-o&lt;/span&gt; &lt;span class=&#34;token assign-left variable&#34;&gt;jsonpath&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#39;&amp;#123;.data.tls\.crt&amp;#125;&#39;&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;\&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt; &lt;span class=&#34;token operator&#34;&gt;|&lt;/span&gt; base64 &lt;span class=&#34;token parameter variable&#34;&gt;-d&lt;/span&gt; &lt;span class=&#34;token operator&#34;&gt;|&lt;/span&gt; openssl x509 &lt;span class=&#34;token parameter variable&#34;&gt;-noout&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-dates&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;输出：&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token assign-left variable&#34;&gt;notBefore&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;Aug &lt;span class=&#34;token number&#34;&gt;14&lt;/span&gt; &lt;span class=&#34;token number&#34;&gt;14&lt;/span&gt;:34:57 &lt;span class=&#34;token number&#34;&gt;2025&lt;/span&gt; GMT&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token assign-left variable&#34;&gt;notAfter&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;Nov &lt;span class=&#34;token number&#34;&gt;12&lt;/span&gt; &lt;span class=&#34;token number&#34;&gt;14&lt;/span&gt;:34:56 &lt;span class=&#34;token number&#34;&gt;2025&lt;/span&gt; GMT&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;证书成功续签，GitLab 页面恢复正常。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2 id=&#34;经验总结&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#经验总结&#34;&gt;#&lt;/a&gt; &lt;strong&gt;经验总结&lt;/strong&gt;&lt;/h2&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;HTTP-01 续期需要保证：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;80 端口对外开放&lt;/li&gt;
+&lt;li&gt;.well-known/acme-challenge/ 不要跳转到 HTTPS&lt;/li&gt;
+&lt;li&gt;ingressClass 要和实际 ingress controller 匹配&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;对多 ingressClass 环境建议：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;统一证书签发方式（最好 DNS-01）&lt;/li&gt;
+&lt;li&gt;或者在 solver ingress 创建时自动 patch ingressClass&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;日常监控：&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;定期跑 kubectl get certificate -A&lt;/li&gt;
+&lt;li&gt;配合 openssl s_client 检查实际到期时间&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+</content>
+        <category term="K8S" scheme="https://qiaoxingrui.github.io/categories/k8s/" />
+        <category term="SSL" scheme="https://qiaoxingrui.github.io/tags/ssl/" />
+        <category term="K8S" scheme="https://qiaoxingrui.github.io/tags/k8s/" />
+        <updated>2025-08-15T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2025/08/15/Kubernetes%E4%B8%AD%E7%9A%84SSL%E8%AF%81%E4%B9%A6%E7%AE%A1%E7%90%86%E5%85%A8%E8%A7%A3%E6%9E%90/</id>
+        <title>Kubernetes 中的 SSL 证书管理全解析</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2025/08/15/Kubernetes%E4%B8%AD%E7%9A%84SSL%E8%AF%81%E4%B9%A6%E7%AE%A1%E7%90%86%E5%85%A8%E8%A7%A3%E6%9E%90/"/>
+        <content type="html">&lt;h1 id=&#34;kubernetes-中的-ssl-证书管理全解析cert-manager-原理与组件&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#kubernetes-中的-ssl-证书管理全解析cert-manager-原理与组件&#34;&gt;#&lt;/a&gt; &lt;strong&gt;Kubernetes 中的 SSL 证书管理全解析：cert-manager 原理与组件&lt;/strong&gt;&lt;/h1&gt;
+&lt;p&gt;在 Kubernetes 集群中，如果要为服务提供 HTTPS 访问，最常见的做法是通过 &lt;strong&gt;Ingress Controller&lt;/strong&gt; 配合 &lt;strong&gt;cert-manager&lt;/strong&gt; 自动申请和管理 TLS 证书。&lt;/p&gt;
+&lt;p&gt;本文将用通俗易懂的方式，介绍 cert-manager 申请证书时涉及的组件、它们的作用，以及整个签发原理。&lt;/p&gt;
+&lt;hr /&gt;
+&lt;h2 id=&#34;1-cert-manager-中的核心组件&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#1-cert-manager-中的核心组件&#34;&gt;#&lt;/a&gt; &lt;strong&gt;1. cert-manager 中的核心组件&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;在 cert-manager 的世界里，有几个非常重要的 CRD（自定义资源类型），它们负责证书申请与生命周期管理。&lt;/p&gt;
+&lt;h3 id=&#34;11-issuer-clusterissuer&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#11-issuer-clusterissuer&#34;&gt;#&lt;/a&gt; &lt;strong&gt;1.1 Issuer / ClusterIssuer&lt;/strong&gt;&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;作用&lt;/strong&gt;：定义证书签发的 “颁发机构” 配置。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;区别&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;Issuer&lt;/strong&gt;：作用域是命名空间级，只能为所在 namespace 中的证书提供签发服务。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;ClusterIssuer&lt;/strong&gt;：作用域是集群级，任何 namespace 都能用。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;内容&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;签发类型（如 ACME / CA / SelfSigned）&lt;/li&gt;
+&lt;li&gt;ACME 服务器地址（如 Let’s Encrypt）&lt;/li&gt;
+&lt;li&gt;验证方式（HTTP-01 / DNS-01）&lt;/li&gt;
+&lt;li&gt;账号邮箱等信息&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;示例&lt;/strong&gt;（Let’s Encrypt HTTP-01）：&lt;/p&gt;
+&lt;figure class=&#34;highlight yaml&#34;&gt;&lt;figcaption data-lang=&#34;YAML&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token key atrule&#34;&gt;apiVersion&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; cert&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;manager.io/v1&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token key atrule&#34;&gt;kind&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; ClusterIssuer&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token key atrule&#34;&gt;metadata&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  &lt;span class=&#34;token key atrule&#34;&gt;name&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; letsencrypt&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;http01&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;5&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token key atrule&#34;&gt;spec&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;6&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  &lt;span class=&#34;token key atrule&#34;&gt;acme&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;7&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;email&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; admin@example.com&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;8&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;server&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; https&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;//acme&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;v02.api.letsencrypt.org/directory&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;9&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;privateKeySecretRef&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;10&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token key atrule&#34;&gt;name&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; letsencrypt&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;http01&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;key&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;11&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;solvers&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;12&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; &lt;span class=&#34;token key atrule&#34;&gt;http01&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;13&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;          &lt;span class=&#34;token key atrule&#34;&gt;ingress&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;14&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;            &lt;span class=&#34;token key atrule&#34;&gt;class&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; nginx&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;hr /&gt;
+&lt;h3 id=&#34;12-certificate&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#12-certificate&#34;&gt;#&lt;/a&gt; &lt;strong&gt;1.2 Certificate&lt;/strong&gt;&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;作用&lt;/strong&gt;：声明需要申请的证书信息。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;内容&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;使用哪个 Issuer / ClusterIssuer&lt;/li&gt;
+&lt;li&gt;绑定的域名（dnsNames）&lt;/li&gt;
+&lt;li&gt;存储证书的 Secret 名称&lt;/li&gt;
+&lt;li&gt;证书的有效期要求&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;状态字段&lt;/strong&gt;：会记录 Ready 状态、有效期、上次续期原因等。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;p&gt;&lt;strong&gt;示例&lt;/strong&gt;：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;apiVersion: cert-manager.io/v1
+kind: Certificate
+metadata:
+  name: my-tls
+  namespace: default
+spec:
+  secretName: my-tls-secret
+  dnsNames:
+    - example.com
+  issuerRef:
+    name: letsencrypt-http01
+    kind: ClusterIssuer
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;h3 id=&#34;13-order&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#13-order&#34;&gt;#&lt;/a&gt; &lt;strong&gt;1.3 Order&lt;/strong&gt;&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;作用&lt;/strong&gt;：cert-manager 与 ACME 服务器（例如 Let’s Encrypt）交互时的临时对象，用于记录一次签发或续签过程。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;包含信息&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;当前证书签发进度&lt;/li&gt;
+&lt;li&gt;对应的 Challenge 记录&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;生命周期&lt;/strong&gt;：证书申请完成后，Order 会自动被清理。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;h3 id=&#34;14-challenge&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#14-challenge&#34;&gt;#&lt;/a&gt; &lt;strong&gt;1.4 Challenge&lt;/strong&gt;&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;作用&lt;/strong&gt;：ACME 协议中，CA（证书颁发机构）用来验证你对某个域名的所有权。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;类型&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;&lt;strong&gt;HTTP-01&lt;/strong&gt;：在域名下 .well-known/acme-challenge/ 放置验证文件。&lt;/li&gt;
+&lt;li&gt;&lt;strong&gt;DNS-01&lt;/strong&gt;：在域名的 DNS TXT 记录中写入指定 token。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;HTTP-01 特点&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;cert-manager 会创建一个 &lt;strong&gt;solver pod&lt;/strong&gt; 和对应的临时 ingress，把验证路径路由到这个 pod。&lt;/li&gt;
+&lt;li&gt;验证成功后，solver 会被删除。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;h3 id=&#34;15-solverhttp-01-solver&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#15-solverhttp-01-solver&#34;&gt;#&lt;/a&gt; &lt;strong&gt;1.5 Solver（HTTP-01 Solver）&lt;/strong&gt;&lt;/h3&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;作用&lt;/strong&gt;：在 HTTP-01 验证中，负责对外暴露验证文件的服务组件。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;实现方式&lt;/strong&gt;：&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;cert-manager 会为每个域名的 Challenge 创建一个临时 &lt;strong&gt;Ingress&lt;/strong&gt;，并将 /.well-known/acme-challenge/ 路径流量转发到 solver pod。&lt;/li&gt;
+&lt;li&gt;验证完成后，相关 ingress 与 pod 会自动清理。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;hr /&gt;
+&lt;h2 id=&#34;2-证书签发的工作原理&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#2-证书签发的工作原理&#34;&gt;#&lt;/a&gt; &lt;strong&gt;2. 证书签发的工作原理&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;下面是 HTTP-01 验证的基本流程：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;创建 Certificate&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;用户提交一个 Certificate 对象，指定需要的域名、Issuer 等。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;生成 Order&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;cert-manager 根据 Certificate 创建一个 Order 对象，向 ACME 服务器发起签发请求。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;生成 Challenge&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;ACME 返回 Challenge 请求（HTTP-01/DNS-01）。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;部署 Solver&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;对于 HTTP-01，cert-manager 创建一个临时 ingress + pod 来响应 ACME 的验证请求。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;ACME 验证&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;CA 访问 http://&amp;lt;your-domain&amp;gt;/.well-known/acme-challenge/&amp;lt;token&amp;gt;，验证域名所有权。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;签发证书&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;验证通过后，ACME 颁发证书，cert-manager 将其保存到指定的 Secret。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;更新 Certificate 状态&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;证书 Ready，Ingress Controller 使用新证书提供 HTTPS。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;自动续期&lt;/strong&gt;&lt;/p&gt;
+&lt;ul&gt;
+&lt;li&gt;cert-manager 会在证书到期前（默认 2/3 生命周期时）自动续期。&lt;/li&gt;
+&lt;/ul&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;hr /&gt;
+&lt;h2 id=&#34;3-http-01-签发流程图&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#3-http-01-签发流程图&#34;&gt;#&lt;/a&gt; &lt;strong&gt;3. HTTP-01 签发流程图&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;下面的流程图直观展示了 cert-manager 申请证书的过程（HTTP-01 模式）：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;+----------------+       +----------------+
+|  Certificate   |-----&amp;gt; |    Order       |
+| (用户声明)      |       | (签发请求)     |
++----------------+       +----------------+
+                               |
+                               v
+                        +--------------+
+                        |  Challenge   |
+                        | (域名验证)    |
+                        +--------------+
+                               |
+                               v
+                     +-------------------+
+                     |  HTTP-01 Solver   |
+                     | (临时Ingress+Pod) |
+                     +-------------------+
+                               |
+        ACME访问HTTP验证路径   |
+&amp;lt;------------------------------+
+                               |
+                               v
+                     +-------------------+
+                     |  ACME签发证书     |
+                     +-------------------+
+                               |
+                               v
+                   +-----------------------+
+                   |  Secret存储证书       |
+                   +-----------------------+
+                               |
+                               v
+                  +------------------------+
+                  |  Ingress使用新证书     |
+                  +------------------------+
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;h2 id=&#34;4-常见问题与建议&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#4-常见问题与建议&#34;&gt;#&lt;/a&gt; &lt;strong&gt;4. 常见问题与建议&lt;/strong&gt;&lt;/h2&gt;
+&lt;ul&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;HTTP 强制跳转 HTTPS&lt;/strong&gt;：&lt;/p&gt;
+&lt;p&gt;在 HTTP-01 验证期间必须允许 HTTP 直通，否则验证会失败。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;多 ingressClass 环境&lt;/strong&gt;：&lt;/p&gt;
+&lt;p&gt;确保 solver ingress 的 ingressClassName 与实际处理的 Ingress Controller 匹配。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;DNS-01 更稳妥&lt;/strong&gt;：&lt;/p&gt;
+&lt;p&gt;如果 HTTP-01 验证受限（多层代理、CDN、80 端口被占用），建议改用 DNS-01。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;&lt;strong&gt;监控证书状态&lt;/strong&gt;：&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ul&gt;
+&lt;pre&gt;&lt;code&gt;kubectl get certificate -A
+&lt;/code&gt;&lt;/pre&gt;
+&lt;hr /&gt;
+&lt;h2 id=&#34;总结&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#总结&#34;&gt;#&lt;/a&gt; &lt;strong&gt;总结&lt;/strong&gt;&lt;/h2&gt;
+&lt;p&gt;cert-manager 让 Kubernetes 上的证书管理自动化变得非常简单，但理解它背后的组件与流程，能帮助我们快速定位问题、选择合适的验证方式，并在证书续签失败时高效排障。&lt;/p&gt;
+</content>
+        <category term="K8S" scheme="https://qiaoxingrui.github.io/categories/k8s/" />
+        <category term="SSL" scheme="https://qiaoxingrui.github.io/tags/ssl/" />
+        <category term="K8S" scheme="https://qiaoxingrui.github.io/tags/k8s/" />
+        <updated>2025-08-15T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2024/06/27/Docker%E4%B8%AD%E7%9A%84Nginx%E4%BD%BF%E7%94%A8Let&#39;s%20Encrpyt%E9%85%8D%E7%BD%AESSL/</id>
+        <title>Docker中的Nginx使用Let&#39;s Encrpyt配置SSL</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2024/06/27/Docker%E4%B8%AD%E7%9A%84Nginx%E4%BD%BF%E7%94%A8Let&#39;s%20Encrpyt%E9%85%8D%E7%BD%AESSL/"/>
+        <content type="html">&lt;h1 id=&#34;docker中的nginx使用lets-encrpyt配置ssl&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#docker中的nginx使用lets-encrpyt配置ssl&#34;&gt;#&lt;/a&gt; Docker 中的 Nginx 使用 Let&#39;s Encrpyt 配置 SSL&lt;/h1&gt;
+&lt;h2 id=&#34;准备nginx和certbot的docker-composeyaml&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#准备nginx和certbot的docker-composeyaml&#34;&gt;#&lt;/a&gt; 准备 nginx 和 certbot 的 docker-compose.yaml&lt;/h2&gt;
+&lt;p&gt;​	内容如下，其中 entrypoint 中设置了每隔 12h 进行一次续期（nginx reload 的目的是如果证书更新需要 nginx reload 才会生效），避免了 ssl 过期需要人工更新&lt;/p&gt;
+&lt;figure class=&#34;highlight yaml&#34;&gt;&lt;figcaption data-lang=&#34;YAML&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token key atrule&#34;&gt;version&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#39;3.8&#39;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token key atrule&#34;&gt;services&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  &lt;span class=&#34;token key atrule&#34;&gt;nginx&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;image&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; nginx&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;latest&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;5&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;container_name&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; nginx&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;6&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;ports&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;7&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#34;80:80&#34;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;8&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#34;443:443&#34;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;9&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;volumes&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;10&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; ./volume/conf.d&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;/etc/nginx/conf.d&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;11&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; ./volume/html&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;/usr/share/nginx/html&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;12&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; ./volume/ssl&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;/etc/nginx/ssl&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;13&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; ./volume/logs/nginx&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;/var/log/nginx&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;14&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;restart&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; always&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;15&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;networks&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;16&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; cvat&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;17&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;depends_on&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;18&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; certbot&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;19&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;entrypoint&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#34;/bin/sh&#34;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#34;-c&#34;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#34;nginx &amp;amp;&amp;amp; trap exit TERM; while :; do sleep 12h; nginx -s reload &gt;&gt; /var/log/nginx/reload.log 2&gt;&amp;amp;1; done;&#34;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;]&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;20&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;21&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  &lt;span class=&#34;token key atrule&#34;&gt;certbot&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;22&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;image&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; certbot/certbot&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;23&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;container_name&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; certbot&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;24&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;volumes&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;25&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; ./volume/html&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;/usr/share/nginx/html&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;26&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; ./volume/ssl&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;/etc/letsencrypt&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;27&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; ./volume/logs/letsencrypt&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;/var/log/letsencrypt&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;28&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;entrypoint&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#34;/bin/sh&#34;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#34;-c&#34;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#34;trap exit TERM; while :; do certbot renew &gt;&gt; /var/log/letsencrypt/renew.log 2&gt;&amp;amp;1; sleep 12h &amp;amp; wait $$&amp;#123;!&amp;#125;; done;&#34;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;]&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;29&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;30&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token key atrule&#34;&gt;networks&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;31&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  &lt;span class=&#34;token key atrule&#34;&gt;dockernet&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;32&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token key atrule&#34;&gt;external&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;token boolean important&#34;&gt;true&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h2 id=&#34;准备nginx的配置文件&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#准备nginx的配置文件&#34;&gt;#&lt;/a&gt; 准备 nginx 的配置文件&lt;/h2&gt;
+&lt;p&gt;​	文件内容格式参考如下，说明：这里我的 nginx 是作为反向代理到 docker 内网的一个服务（your-service），所以我需要额外配置  location /.well-known/acme-challenge/，因为 certbot 在生成证书的时候会访问域名的这个静态目录并随机创建一个文件用作验证才可正常生成证书，如果 location / 配置指向 /usr/share/nginx/html 则无需配置 location /.well-known/acme-challenge/&lt;/p&gt;
+&lt;figure class=&#34;highlight nginx&#34;&gt;&lt;figcaption data-lang=&#34;nginx&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;server&lt;/span&gt;&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;listen&lt;/span&gt; &lt;span class=&#34;token number&#34;&gt;80&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;server_name&lt;/span&gt; yourdomain.com&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;5&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;client_max_body_size&lt;/span&gt; &lt;span class=&#34;token number&#34;&gt;100M&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;6&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;7&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;location&lt;/span&gt; /&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;8&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;proxy_pass&lt;/span&gt; http://your-service&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;9&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;proxy_set_header&lt;/span&gt; Host &lt;span class=&#34;token variable&#34;&gt;$host&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;10&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;proxy_set_header&lt;/span&gt; X-Real-IP &lt;span class=&#34;token variable&#34;&gt;$remote_addr&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;11&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;proxy_set_header&lt;/span&gt; X-Forwarded-For &lt;span class=&#34;token variable&#34;&gt;$proxy_add_x_forwarded_for&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;12&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;proxy_set_header&lt;/span&gt; X-Forwarded-Proto &lt;span class=&#34;token variable&#34;&gt;$scheme&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;13&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;14&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;15&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;location&lt;/span&gt; /.well-known/acme-challenge/&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;16&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;root&lt;/span&gt; /usr/share/nginx/html&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;17&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;18&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h2 id=&#34;启动容器&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#启动容器&#34;&gt;#&lt;/a&gt; 启动容器&lt;/h2&gt;
+&lt;p&gt;​	保存 docker-compose 脚本内容到 docker-compose.yaml 文件中，并在同目录执行以下命令启动容器&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;docker-compose&lt;/span&gt; up &lt;span class=&#34;token parameter variable&#34;&gt;-d&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h2 id=&#34;生成证书&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#生成证书&#34;&gt;#&lt;/a&gt; 生成证书&lt;/h2&gt;
+&lt;p&gt;​	容器启动后进入 certbot 容器内部，并生成证书&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;docker&lt;/span&gt; &lt;span class=&#34;token builtin class-name&#34;&gt;exec&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-it&lt;/span&gt; certbot &lt;span class=&#34;token function&#34;&gt;sh&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;certbot certonly &lt;span class=&#34;token parameter variable&#34;&gt;--webroot&lt;/span&gt; --webroot-path&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;/usr/share/nginx/html &lt;span class=&#34;token parameter variable&#34;&gt;--email&lt;/span&gt; youremail@example.com --agree-tos --no-eff-email &lt;span class=&#34;token parameter variable&#34;&gt;-d&lt;/span&gt; yourdomain.com&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h2 id=&#34;更新nginx配置文件添加证书&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#更新nginx配置文件添加证书&#34;&gt;#&lt;/a&gt; 更新 nginx 配置文件添加证书&lt;/h2&gt;
+&lt;p&gt;​	将生成的证书配置到 nginx 中，这里注意 80 端口一定要配置重定向到 HTTPS 否则不生效，以下是更新后的配置文件&lt;/p&gt;
+&lt;figure class=&#34;highlight nginx&#34;&gt;&lt;figcaption data-lang=&#34;nginx&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;server&lt;/span&gt;&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;listen&lt;/span&gt; &lt;span class=&#34;token number&#34;&gt;80&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;server_name&lt;/span&gt; yourdomain.com&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;5&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;client_max_body_size&lt;/span&gt; &lt;span class=&#34;token number&#34;&gt;100M&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;6&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;7&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;location&lt;/span&gt; /&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;8&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token comment&#34;&gt;# 将所有 HTTP 请求重定向到 HTTPS&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;9&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;return&lt;/span&gt; &lt;span class=&#34;token number&#34;&gt;301&lt;/span&gt; https://&lt;span class=&#34;token variable&#34;&gt;$host&lt;/span&gt;&lt;span class=&#34;token variable&#34;&gt;$request_uri&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;10&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;11&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;12&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;location&lt;/span&gt; /.well-known/acme-challenge/&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;13&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;root&lt;/span&gt; /usr/share/nginx/html&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;14&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;15&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;16&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;17&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;server&lt;/span&gt;&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;18&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;listen&lt;/span&gt; &lt;span class=&#34;token number&#34;&gt;443&lt;/span&gt; ssl&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;19&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;server_name&lt;/span&gt; yourdomain.com&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;20&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;21&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;client_max_body_size&lt;/span&gt; &lt;span class=&#34;token number&#34;&gt;100M&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;22&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;23&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;ssl_certificate&lt;/span&gt; /etc/nginx/ssl/live/yourdomain.com/fullchain.pem&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;24&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;ssl_certificate_key&lt;/span&gt; /etc/nginx/ssl/live/yourdomain.com/privkey.pem&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;25&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;26&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;location&lt;/span&gt; /&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;27&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;proxy_pass&lt;/span&gt; http://your-service&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;28&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;proxy_set_header&lt;/span&gt; Host &lt;span class=&#34;token variable&#34;&gt;$host&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;29&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;proxy_set_header&lt;/span&gt; X-Real-IP &lt;span class=&#34;token variable&#34;&gt;$remote_addr&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;30&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;proxy_set_header&lt;/span&gt; X-Forwarded-For &lt;span class=&#34;token variable&#34;&gt;$proxy_add_x_forwarded_for&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;31&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;proxy_set_header&lt;/span&gt; X-Forwarded-Proto &lt;span class=&#34;token variable&#34;&gt;$scheme&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;32&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;33&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;34&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;location&lt;/span&gt; /.well-known/acme-challenge/&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;35&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;root&lt;/span&gt; /usr/share/nginx/html&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;36&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;37&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h2 id=&#34;关于通配符类型的域名申请证书&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#关于通配符类型的域名申请证书&#34;&gt;#&lt;/a&gt; 关于通配符类型的域名申请证书&lt;/h2&gt;
+&lt;p&gt;​	申请证书和续期的命令如下，申请命令执行后会生成一个 txt record 需要你添加到你的 dns 解析中，另外续期也需要更新 txt record 所以需要借助 dns 运营商的 api 之类的才能自动续期，本次实践没有做这块&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;certbot &lt;span class=&#34;token parameter variable&#34;&gt;-d&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#34;*.example.com&#34;&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;--manual&lt;/span&gt; --preferred-challenges dns certonly&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;certbot renew &lt;span class=&#34;token parameter variable&#34;&gt;--manual&lt;/span&gt; --preferred-challenges dns&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;</content>
+        <category term="Nginx" scheme="https://qiaoxingrui.github.io/categories/nginx/" />
+        <category term="Nginx" scheme="https://qiaoxingrui.github.io/tags/nginx/" />
+        <updated>2024-06-27T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2023/10/13/Server%E6%8E%A5%E5%8F%A3%E8%BF%94%E5%9B%9E%E6%85%A2%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/</id>
+        <title>arthas分析客户现场请求过慢</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2023/10/13/Server%E6%8E%A5%E5%8F%A3%E8%BF%94%E5%9B%9E%E6%85%A2%E9%97%AE%E9%A2%98%E6%8E%92%E6%9F%A5/"/>
+        <content type="html">&lt;h2 id=&#34;问题描述&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#问题描述&#34;&gt;#&lt;/a&gt; 问题描述：&lt;/h2&gt;
+&lt;p&gt;客户反馈在使用过程中每次请求数据返回速度都很慢，并且时必现问题，因为客户是内网环境（客户的网络环境不允许外网访问）所以让同事到现场排查问题，发现所有的后端网络请求都很慢，不过目前项目在本地及开发、测试环境运行均无法复现问题。&lt;/p&gt;
+&lt;h2 id=&#34;排查步骤&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#排查步骤&#34;&gt;#&lt;/a&gt; 排查步骤：&lt;/h2&gt;
+&lt;h3 id=&#34;1打包一个包含arthasjar的docker镜像重新部署&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#1打包一个包含arthasjar的docker镜像重新部署&#34;&gt;#&lt;/a&gt; 1. 打包一个包含 arthas.jar 的 docker 镜像重新部署&lt;/h3&gt;
+&lt;h3 id=&#34;2运行容器后进入容器&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#2运行容器后进入容器&#34;&gt;#&lt;/a&gt; 2. 运行容器后进入容器&lt;/h3&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;docker&lt;/span&gt; &lt;span class=&#34;token builtin class-name&#34;&gt;exec&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-it&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;[&lt;/span&gt;容器名&lt;span class=&#34;token punctuation&#34;&gt;]&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;sh&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h3 id=&#34;3启动arthas&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#3启动arthas&#34;&gt;#&lt;/a&gt; 3. 启动 arthas&lt;/h3&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;java&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-jar&lt;/span&gt; arthas-boot.jar  &lt;span class=&#34;token number&#34;&gt;1&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h3 id=&#34;4追踪疑似慢的方法&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#4追踪疑似慢的方法&#34;&gt;#&lt;/a&gt; 4. 追踪疑似慢的方法&lt;/h3&gt;
+&lt;p&gt;这里追踪的时一个全局的 filter 方法，因为每个请求都慢所以怀疑是这里&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;trace com.xxx.BodyReaderFilter doFilter&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h3 id=&#34;5通过curl请求该方法并查看arthas日志&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#5通过curl请求该方法并查看arthas日志&#34;&gt;#&lt;/a&gt; 5. 通过 curl 请求该方法并查看 arthas 日志&lt;/h3&gt;
+&lt;p&gt;这里找到了慢的原因是 log4j 打印日志的时候用了 5s&lt;br /&gt;
+&lt;img data-src=&#34;/images/arthas-sl.png&#34; alt=&#34;日志截图&#34; /&gt;&lt;/p&gt;
+&lt;h2 id=&#34;解决方案&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#解决方案&#34;&gt;#&lt;/a&gt; 解决方案：&lt;/h2&gt;
+&lt;p&gt;注释日志重新打包问题解决&lt;/p&gt;
+&lt;h3 id=&#34;小结&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#小结&#34;&gt;#&lt;/a&gt; 小结：&lt;/h3&gt;
+&lt;p&gt;这个日志打印在其他机器上都没有出现过很慢的情况，我们模拟了和客户一样的系统环境但是均未复现，这里猜想是 log4j 自身缺陷或者客户服务器硬件的兼容问题，后续并没有深究具体原因。&lt;/p&gt;
+</content>
+        <category term="arthas" scheme="https://qiaoxingrui.github.io/categories/arthas/" />
+        <category term="java" scheme="https://qiaoxingrui.github.io/categories/arthas/java/" />
+        <category term="问题解决" scheme="https://qiaoxingrui.github.io/tags/%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/" />
+        <updated>2023-10-13T03:04:39.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2023/08/20/%E8%AE%B0%E5%BD%95%E4%B8%80%E4%B8%8B%E9%83%A8%E7%BD%B2AWS%20EKS%E7%9A%84%E5%9D%91/</id>
+        <title>记录一下部署AWS EKS的坑</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2023/08/20/%E8%AE%B0%E5%BD%95%E4%B8%80%E4%B8%8B%E9%83%A8%E7%BD%B2AWS%20EKS%E7%9A%84%E5%9D%91/"/>
+        <content type="html">&lt;p&gt;1. 创建集群后本地 aws configure 和 aws eks update-kubeconfig --region ## --name ## 后 kubectl 提示需要登录没有权限，由于我的 aws 账号是根账号授权的 sso 账号，我就自己去 IAM 创建了一个拥有 eks 相关权限的账号，但是怎么都不行，后来干脆加大权限给这个账号 administratorAccess 权限，仍然无效，最后尝试把 sso 账号设置到 configure 中，设置后操作时提示 token 无效，发现了问题所在，通过环境变量的方式将 KEY SECRET TOKEN 写入，然后再次 kubectl get nodes，问题解决，然后可以通过&lt;/p&gt;
+&lt;p&gt;eksctl create iamidentitymapping --cluster my-cluster --arn arn:aws:iam::YOUR_ACCOUNT_ID:user/my-iam-user --group system:masters --username my-iam-user 将自己在 IAM 新建的有 eks 权限的账户加入到配置组，这样 IAM 新建的账号就可以用 key 和 secret 配置到本地，不需要用之前的 token 了&lt;/p&gt;
+&lt;p&gt;2. 在 eks 中安装 kubesphere 后 prometheus 的 pvc 一直 pending 不动，describe 发现提示需要去 ebs 申领，然后安装了 EBS 的插件，然而并没有解决问题，再次查看日志发现权限不足遂针对针对&lt;br /&gt;
+ AmazonEKSNodeRole 角色增加 AmazonEBSCSIDriverPolicy 权限，稍等片刻问题解决&lt;/p&gt;
+</content>
+        <category term="aws" scheme="https://qiaoxingrui.github.io/categories/aws/" />
+        <category term="eks" scheme="https://qiaoxingrui.github.io/tags/eks/" />
+        <updated>2023-08-20T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2023/06/25/JAVA%20SPI%E7%AE%80%E5%8D%95%E5%AE%9E%E7%8E%B0/</id>
+        <title>JAVA SPI简单实现</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2023/06/25/JAVA%20SPI%E7%AE%80%E5%8D%95%E5%AE%9E%E7%8E%B0/"/>
+        <content type="html">&lt;blockquote&gt;
+&lt;p&gt;Java SPI（Service Provider Interface）是一种用于实现组件化、插件化和可扩展性的机制。它是 Java 标准库提供的一种服务发现机制，用于在运行时动态加载和实例化实现了特定接口的类。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;blockquote&gt;
+&lt;p&gt;Java SPI 的核心概念是服务接口（Service Interface）、服务实现者（Service Provider）和服务提供者配置文件（Service Provider Configuration File）。&lt;/p&gt;
+&lt;/blockquote&gt;
+&lt;h3 id=&#34;1-服务接口service-interface&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#1-服务接口service-interface&#34;&gt;#&lt;/a&gt; 1. 服务接口（Service Interface）：&lt;/h3&gt;
+&lt;p&gt;服务接口是定义一组抽象方法的接口，它规定了一组服务提供者需要实现的方法。服务接口通常由 Java 标准库或框架提供，用于描述某个功能或扩展点的抽象定义。&lt;/p&gt;
+&lt;h3 id=&#34;2-服务实现者service-provider&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#2-服务实现者service-provider&#34;&gt;#&lt;/a&gt; 2. 服务实现者（Service Provider）：&lt;/h3&gt;
+&lt;p&gt;服务实现者是指实现了服务接口的具体类。它们是提供某个功能或扩展点具体实现的组件。每个服务实现者必须提供一个无参构造函数，并实现服务接口中定义的方法。&lt;/p&gt;
+&lt;h3 id=&#34;3-服务提供者配置文件service-provider-configuration-file&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#3-服务提供者配置文件service-provider-configuration-file&#34;&gt;#&lt;/a&gt; 3. 服务提供者配置文件（Service Provider Configuration File）：&lt;/h3&gt;
+&lt;p&gt;服务提供者配置文件是一种文本文件，它位于 classpath 的 &lt;code&gt;META-INF/services/&lt;/code&gt;  目录下，文件名与服务接口的完全限定名相同。该文件中的每一行都包含一个服务接口的实现类的完全限定名。Java 运行时环境可以通过读取这个文件来获取服务接口的实现类。&lt;/p&gt;
+&lt;h2 id=&#34;java-spi的使用步骤如下&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#java-spi的使用步骤如下&#34;&gt;#&lt;/a&gt; Java SPI 的使用步骤如下：&lt;/h2&gt;
+&lt;h3 id=&#34;1-定义服务接口定义一个接口来描述服务的抽象方法&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#1-定义服务接口定义一个接口来描述服务的抽象方法&#34;&gt;#&lt;/a&gt; 1. 定义服务接口：定义一个接口来描述服务的抽象方法。&lt;/h3&gt;
+&lt;h3 id=&#34;2-创建服务实现者实现服务接口提供具体的功能或扩展点实现&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#2-创建服务实现者实现服务接口提供具体的功能或扩展点实现&#34;&gt;#&lt;/a&gt; 2. 创建服务实现者：实现服务接口，提供具体的功能或扩展点实现。&lt;/h3&gt;
+&lt;h3 id=&#34;3-创建服务提供者配置文件在meta-infservices目录下创建一个以服务接口的完全限定名为命名的文件并将每个服务实现者的完全限定名写入文件的一行&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#3-创建服务提供者配置文件在meta-infservices目录下创建一个以服务接口的完全限定名为命名的文件并将每个服务实现者的完全限定名写入文件的一行&#34;&gt;#&lt;/a&gt; 3. 创建服务提供者配置文件：在 &lt;code&gt;META-INF/services/&lt;/code&gt;  目录下创建一个以服务接口的完全限定名为命名的文件，并将每个服务实现者的完全限定名写入文件的一行。&lt;/h3&gt;
+&lt;h3 id=&#34;4-加载服务实现者通过java-spi机制运行时环境会自动加载和实例化服务接口的实现类&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#4-加载服务实现者通过java-spi机制运行时环境会自动加载和实例化服务接口的实现类&#34;&gt;#&lt;/a&gt; 4. 加载服务实现者：通过 Java SPI 机制，运行时环境会自动加载和实例化服务接口的实现类。&lt;/h3&gt;
+&lt;p&gt;通过 Java SPI，我们可以实现组件之间的解耦和动态扩展。框架或库可以定义服务接口，而具体的实现可以由第三方开发者提供，并通过服务提供者配置文件注册到应用中。这样，在应用运行时，可以动态地发现和加载符合接口定义的实现类，从而实现灵活的插件式开发和扩展性。&lt;/p&gt;
+&lt;h2 id=&#34;以下是代码的简单实现&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#以下是代码的简单实现&#34;&gt;#&lt;/a&gt; 以下是代码的简单实现&lt;/h2&gt;
+&lt;h3 id=&#34;定义一个消息服务接口&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#定义一个消息服务接口&#34;&gt;#&lt;/a&gt; 定义一个消息服务接口&lt;/h3&gt;
+&lt;figure class=&#34;highlight java&#34;&gt;&lt;figcaption data-lang=&#34;java&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token keyword&#34;&gt;package&lt;/span&gt; &lt;span class=&#34;token namespace&#34;&gt;com&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;test&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;spi&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token keyword&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;token keyword&#34;&gt;interface&lt;/span&gt; &lt;span class=&#34;token class-name&#34;&gt;MessageService&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token keyword&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;sendMessage&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token class-name&#34;&gt;String&lt;/span&gt; message&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;5&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h3 id=&#34;定义两个实现类&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#定义两个实现类&#34;&gt;#&lt;/a&gt; 定义两个实现类&lt;/h3&gt;
+&lt;figure class=&#34;highlight java&#34;&gt;&lt;figcaption data-lang=&#34;java&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token keyword&#34;&gt;package&lt;/span&gt; &lt;span class=&#34;token namespace&#34;&gt;com&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;test&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;spi&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token keyword&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;token keyword&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;token class-name&#34;&gt;EmailService&lt;/span&gt; &lt;span class=&#34;token keyword&#34;&gt;implements&lt;/span&gt; &lt;span class=&#34;token class-name&#34;&gt;MessageService&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token annotation punctuation&#34;&gt;@Override&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;5&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token keyword&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;token keyword&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;sendMessage&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token class-name&#34;&gt;String&lt;/span&gt; message&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;6&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token comment&#34;&gt;// 实现发送电子邮件的逻辑&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;7&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token class-name&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;out&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;token function&#34;&gt;println&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#34;Sending email: &#34;&lt;/span&gt; &lt;span class=&#34;token operator&#34;&gt;+&lt;/span&gt; message&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;8&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;9&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;figure class=&#34;highlight java&#34;&gt;&lt;figcaption data-lang=&#34;java&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token keyword&#34;&gt;package&lt;/span&gt; &lt;span class=&#34;token namespace&#34;&gt;com&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;test&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;spi&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token keyword&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;token keyword&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;token class-name&#34;&gt;SMSService&lt;/span&gt; &lt;span class=&#34;token keyword&#34;&gt;implements&lt;/span&gt; &lt;span class=&#34;token class-name&#34;&gt;MessageService&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token annotation punctuation&#34;&gt;@Override&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;5&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token keyword&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;token keyword&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;sendMessage&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token class-name&#34;&gt;String&lt;/span&gt; message&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;6&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token comment&#34;&gt;// 实现发送短信的逻辑&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;7&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token class-name&#34;&gt;System&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;out&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;token function&#34;&gt;println&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#34;Sending sms: &#34;&lt;/span&gt; &lt;span class=&#34;token operator&#34;&gt;+&lt;/span&gt; message&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;8&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;9&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h3 id=&#34;classpath下创建meta-infservicescomtestspimessageservice文件其中文件名是接口类路径内容如下&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#classpath下创建meta-infservicescomtestspimessageservice文件其中文件名是接口类路径内容如下&#34;&gt;#&lt;/a&gt; classpath 下创建 META-INF/services/com.test.spi.MessageService 文件，其中文件名是接口类路径，内容如下&lt;/h3&gt;
+&lt;figure class=&#34;highlight java&#34;&gt;&lt;figcaption data-lang=&#34;java&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token class-name&#34;&gt;&lt;span class=&#34;token namespace&#34;&gt;com&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;test&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;spi&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;/span&gt;EmailService&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token class-name&#34;&gt;&lt;span class=&#34;token namespace&#34;&gt;com&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;test&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;spi&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;/span&gt;SMSService&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token comment&#34;&gt;/* 使用 spi*/&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;5&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;6&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token keyword&#34;&gt;package&lt;/span&gt; &lt;span class=&#34;token namespace&#34;&gt;com&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;test&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;spi&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;7&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;8&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token keyword&#34;&gt;import&lt;/span&gt; &lt;span class=&#34;token import&#34;&gt;&lt;span class=&#34;token namespace&#34;&gt;java&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;util&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token class-name&#34;&gt;ServiceLoader&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;9&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;10&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token keyword&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;token keyword&#34;&gt;class&lt;/span&gt; &lt;span class=&#34;token class-name&#34;&gt;Main&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;11&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token keyword&#34;&gt;public&lt;/span&gt; &lt;span class=&#34;token keyword&#34;&gt;static&lt;/span&gt; &lt;span class=&#34;token keyword&#34;&gt;void&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;main&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token class-name&#34;&gt;String&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;[&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;]&lt;/span&gt; args&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;12&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token class-name&#34;&gt;ServiceLoader&lt;/span&gt;&lt;span class=&#34;token generics&#34;&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;lt;&lt;/span&gt;&lt;span class=&#34;token class-name&#34;&gt;MessageService&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&gt;&lt;/span&gt;&lt;/span&gt; loader &lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt; &lt;span class=&#34;token class-name&#34;&gt;ServiceLoader&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;token function&#34;&gt;load&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token class-name&#34;&gt;MessageService&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;token keyword&#34;&gt;class&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;13&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;14&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token keyword&#34;&gt;for&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token class-name&#34;&gt;MessageService&lt;/span&gt; service &lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt; loader&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;15&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;            service&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;token function&#34;&gt;sendMessage&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#34;Hello, SPI!&#34;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;16&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;17&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;18&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h3 id=&#34;得到输出内容为&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#得到输出内容为&#34;&gt;#&lt;/a&gt; 得到输出内容为：&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;Sending email: Hello, SPI!
+Sending sms: Hello, SPI!
+&lt;/code&gt;&lt;/pre&gt;
+</content>
+        <category term="java" scheme="https://qiaoxingrui.github.io/categories/java/" />
+        <updated>2023-06-25T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2023/05/17/%E4%BD%BF%E7%94%A8k8s%20configmap%E4%BF%9D%E5%AD%98nginx.conf%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%20/</id>
+        <title>使用k8s configmap保存nginx.conf配置文件 </title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2023/05/17/%E4%BD%BF%E7%94%A8k8s%20configmap%E4%BF%9D%E5%AD%98nginx.conf%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6%20/"/>
+        <content type="html">&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;创建一个包含 Nginx 配置的文件（例如 nginx.conf）。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;创建一个 ConfigMap 对象，将 Nginx 配置文件添加为其中的数据。&lt;/p&gt;
+&lt;figure class=&#34;highlight shell&#34;&gt;&lt;figcaption data-lang=&#34;Bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;kubectl create configmap nginx-config --from-file&lt;span class=&#34;token operator&#34;&gt;=&lt;/span&gt;nginx.conf&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;这将创建一个名为 &amp;quot;nginx-config&amp;quot; 的 ConfigMap，并将 nginx.conf 文件的内容作为其中的数据存储。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;检查 ConfigMap 是否创建成功：&lt;/p&gt;
+&lt;figure class=&#34;highlight shell&#34;&gt;&lt;figcaption data-lang=&#34;Bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;kubectl get configmap nginx-config&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;确保 ConfigMap &amp;quot;nginx-config&amp;quot; 已成功创建。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;在 Deployment 或 Pod 的 YAML 文件中使用 ConfigMap。&lt;/p&gt;
+&lt;p&gt;在您的 Deployment 或 Pod 的 YAML 文件中，可以通过挂载 ConfigMap 来使用保存的 Nginx 配置文件。&lt;/p&gt;
+&lt;figure class=&#34;highlight yaml&#34;&gt;&lt;figcaption data-lang=&#34;YAML&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token key atrule&#34;&gt;apiVersion&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; v1&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token key atrule&#34;&gt;kind&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; Pod&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token key atrule&#34;&gt;metadata&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  &lt;span class=&#34;token key atrule&#34;&gt;name&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; my&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;nginx&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;pod&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;5&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token key atrule&#34;&gt;spec&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;6&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  &lt;span class=&#34;token key atrule&#34;&gt;containers&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;7&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; &lt;span class=&#34;token key atrule&#34;&gt;name&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; nginx&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;container&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;8&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token key atrule&#34;&gt;image&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; nginx&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;9&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token key atrule&#34;&gt;volumeMounts&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;10&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; &lt;span class=&#34;token key atrule&#34;&gt;name&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; nginx&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;config&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;volume&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;11&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;          &lt;span class=&#34;token key atrule&#34;&gt;mountPath&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; /etc/nginx/nginx.conf&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;12&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;          &lt;span class=&#34;token key atrule&#34;&gt;subPath&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; nginx.conf&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;13&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  &lt;span class=&#34;token key atrule&#34;&gt;volumes&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;14&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt; &lt;span class=&#34;token key atrule&#34;&gt;name&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; nginx&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;config&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;volume&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;15&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;      &lt;span class=&#34;token key atrule&#34;&gt;configMap&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;16&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token key atrule&#34;&gt;name&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;:&lt;/span&gt; nginx&lt;span class=&#34;token punctuation&#34;&gt;-&lt;/span&gt;config&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;在上述示例中，我们将 ConfigMap &amp;quot;nginx-config&amp;quot; 挂载为名为 &amp;quot;nginx-config-volume&amp;quot; 的卷，并将其挂载到容器中的 /etc/nginx/nginx.conf 路径。&lt;/p&gt;
+&lt;p&gt;根据您的实际情况，可能需要根据自己的需求和文件路径进行适当的调整。&lt;/p&gt;
+&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;现在，您已经成功使用 ConfigMap 在 Kubernetes 中保存和使用 Nginx 配置文件。当需要更新配置时，只需更新 ConfigMap 中的数据即可，无需重新构建镜像。&lt;/p&gt;
+</content>
+        <category term="k8s" scheme="https://qiaoxingrui.github.io/categories/k8s/" />
+        <updated>2023-05-17T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2023/05/04/%E7%A6%81%E7%94%A8%20CentOS%207%20%E4%B8%8A%E7%9A%84%E4%BA%A4%E6%8D%A2%E5%88%86%E5%8C%BA/</id>
+        <title>禁用 CentOS 7 上的交换分区</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2023/05/04/%E7%A6%81%E7%94%A8%20CentOS%207%20%E4%B8%8A%E7%9A%84%E4%BA%A4%E6%8D%A2%E5%88%86%E5%8C%BA/"/>
+        <content type="html">&lt;p&gt;禁用 CentOS 7 上的交换分区可以通过以下步骤完成：&lt;/p&gt;
+&lt;ol&gt;
+&lt;li&gt;
+&lt;p&gt;查看当前系统上的交换分区：&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;swapon&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;--show&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;关闭所有交换分区：&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;sudo&lt;/span&gt; swapoff &lt;span class=&#34;token parameter variable&#34;&gt;-a&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;打开  &lt;code&gt;/etc/fstab&lt;/code&gt;  文件，并将交换分区的行注释掉或删除：&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;sudo&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;vi&lt;/span&gt; /etc/fstab&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;在文件中找到类似以下的行：&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;/dev/mapper/centos-swap swap                    swap    defaults        &lt;span class=&#34;token number&#34;&gt;0&lt;/span&gt; &lt;span class=&#34;token number&#34;&gt;0&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;将其注释掉或删除，保存文件并退出。&lt;/p&gt;
+&lt;/li&gt;
+&lt;li&gt;
+&lt;p&gt;重新启动服务器以应用更改。&lt;/p&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;sudo&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;reboot&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;/li&gt;
+&lt;/ol&gt;
+&lt;p&gt;这样就可以在 CentOS 7 上禁用交换分区了。注意，如果您的服务器内存不足，禁用交换分区可能会导致系统性能下降或崩溃。因此，在禁用交换分区之前，请确保您有足够的内存来支持您的工作负载。&lt;/p&gt;
+</content>
+        <category term="linux" scheme="https://qiaoxingrui.github.io/categories/linux/" />
+        <category term="centos7" scheme="https://qiaoxingrui.github.io/categories/linux/centos7/" />
+        <updated>2023-05-04T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2022/11/07/mysql5-7%E4%BF%AE%E6%94%B9%E4%B8%8D%E5%8C%BA%E5%88%86%E5%A4%A7%E5%B0%8F%E5%86%99%E5%8A%9F%E8%83%BD%E6%97%A0%E6%95%88/</id>
+        <title>mysql5.7修改不区分大小写功能无效</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2022/11/07/mysql5-7%E4%BF%AE%E6%94%B9%E4%B8%8D%E5%8C%BA%E5%88%86%E5%A4%A7%E5%B0%8F%E5%86%99%E5%8A%9F%E8%83%BD%E6%97%A0%E6%95%88/"/>
+        <content type="html">&lt;h3 id=&#34;修改mycnf加入如下配置&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#修改mycnf加入如下配置&#34;&gt;#&lt;/a&gt; 修改 my.cnf 加入如下配置&lt;/h3&gt;
+&lt;pre&gt;&lt;code&gt;lower_case_table_names=1
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;重启服务&lt;/p&gt;
+&lt;h3 id=&#34;查看修改结果&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#查看修改结果&#34;&gt;#&lt;/a&gt; 查看修改结果&lt;/h3&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;show global variables like &lt;span class=&#34;token string&#34;&gt;&#39;%lower_case%&#39;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;发现 lower_case_table_names 仍然是 0&lt;/p&gt;
+&lt;h3 id=&#34;修改mycnf-文件的权限为644&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#修改mycnf-文件的权限为644&#34;&gt;#&lt;/a&gt; 修改 my.cnf 文件的权限为 644&lt;/h3&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;chmod&lt;/span&gt; &lt;span class=&#34;token number&#34;&gt;644&lt;/span&gt; my.cnf&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;重启服务查看结果已生效&lt;/p&gt;
+</content>
+        <category term="mysql" scheme="https://qiaoxingrui.github.io/categories/mysql/" />
+        <category term="问题解决" scheme="https://qiaoxingrui.github.io/tags/%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/" />
+        <updated>2022-11-07T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2022/07/03/jenkins%E9%85%8D%E7%BD%AEgithub%20hook/</id>
+        <title>jenkins配置github hook</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2022/07/03/jenkins%E9%85%8D%E7%BD%AEgithub%20hook/"/>
+        <content type="html">&lt;p&gt;&lt;img data-src=&#34;/images/1656831184349553.png&#34; alt=&#34;githubhook.png&#34; title=&#34;1656831184349553.png&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;github webhook 中可以设置 secret 防止第三方伪造请求，secret 配合 jenkins 设置，首先需要到 github setting 中生成一个 token 需要权限如下，生成 token 后填写到 secret 中&lt;/p&gt;
+&lt;p&gt;&lt;img data-src=&#34;/images/1656831327217479.png&#34; alt=&#34;image.png&#34; title=&#34;1656831327217479.png&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;记住 token 到 jenkins 中找到【系统配置】找到 github 点击【高级】，注意此处有两个高级点下面的一个&lt;/p&gt;
+&lt;p&gt;&lt;img data-src=&#34;/images/1656831453873295.png&#34; alt=&#34;image.png&#34; title=&#34;1656831453873295.png&#34; /&gt; 此处的 Shared secrets 中添加刚刚在 github 中生成的 token，我的配置中有两个是因为之前的 token 忘记了，如果有类似需求的同学也可以再加一个 token&lt;/p&gt;
+&lt;p&gt;&lt;img data-src=&#34;/images/1656831566998283.png&#34; alt=&#34;image.png&#34; title=&#34;1656831566998283.png&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;完成上述步骤后可 push 一下测试是否触发构建&lt;/p&gt;
+</content>
+        <category term="CI/CD" scheme="https://qiaoxingrui.github.io/categories/ci-cd/" />
+        <category term="jenkins" scheme="https://qiaoxingrui.github.io/tags/jenkins/" />
+        <updated>2022-07-03T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2022/06/20/vscode%E5%BF%AB%E9%80%9F%E7%94%9F%E6%88%90react%E7%BB%84%E4%BB%B6%E4%BB%A3%E7%A0%81/</id>
+        <title>vscode快速生成react组件代码</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2022/06/20/vscode%E5%BF%AB%E9%80%9F%E7%94%9F%E6%88%90react%E7%BB%84%E4%BB%B6%E4%BB%A3%E7%A0%81/"/>
+        <content type="html">&lt;p&gt;&lt;img data-src=&#34;/images/1655703549777512.png&#34; alt=&#34;image.png&#34; title=&#34;1655703549777512.png&#34; /&gt;&lt;/p&gt;
+&lt;p&gt;安装插件，输入 rcc 生成类组件 rfc 生产函数组件&lt;/p&gt;
+</content>
+        <category term="react" scheme="https://qiaoxingrui.github.io/categories/react/" />
+        <category term="vscode" scheme="https://qiaoxingrui.github.io/categories/react/vscode/" />
+        <category term="vscode" scheme="https://qiaoxingrui.github.io/tags/vscode/" />
+        <updated>2022-06-20T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2022/06/12/Mac%20OS%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</id>
+        <title>Mac OS常用命令</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2022/06/12/Mac%20OS%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/"/>
+        <content type="html">&lt;h3 id=&#34;查询指定端口进程id&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#查询指定端口进程id&#34;&gt;#&lt;/a&gt; 查询指定端口进程 ID&lt;/h3&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;lsof&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-i:8000&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;kill&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-9&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;[&lt;/span&gt;进程id&lt;span class=&#34;token punctuation&#34;&gt;]&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h3 id=&#34;刷新dns&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#刷新dns&#34;&gt;#&lt;/a&gt; 刷新 DNS&lt;/h3&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;sudo&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;killall&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-HUP&lt;/span&gt; mDNSResponder&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;sudo&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;killall&lt;/span&gt; mDNSResponderHelper&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;sudo&lt;/span&gt; dscacheutil &lt;span class=&#34;token parameter variable&#34;&gt;-flushcache&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;</content>
+        <category term="MacOS" scheme="https://qiaoxingrui.github.io/categories/macos/" />
+        <category term="常用命令" scheme="https://qiaoxingrui.github.io/tags/%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" />
+        <updated>2022-06-12T04:35:10.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2022/04/24/json-extract%E6%98%A0%E5%B0%84%E8%99%9A%E6%8B%9F%E5%AD%97%E6%AE%B5varchar%E7%B1%BB%E5%9E%8B%E5%A4%9A%E4%BA%86%E5%8F%8C%E5%BC%95%E5%8F%B7%E9%97%AE%E9%A2%98/</id>
+        <title>json_extract映射虚拟字段varchar类型多了双引号问题</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2022/04/24/json-extract%E6%98%A0%E5%B0%84%E8%99%9A%E6%8B%9F%E5%AD%97%E6%AE%B5varchar%E7%B1%BB%E5%9E%8B%E5%A4%9A%E4%BA%86%E5%8F%8C%E5%BC%95%E5%8F%B7%E9%97%AE%E9%A2%98/"/>
+        <content type="html">&lt;figure class=&#34;highlight sql&#34;&gt;&lt;figcaption data-lang=&#34;SQL&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;JSON_UNQUOTE&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;json_extract&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;target_field&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#39;$.target_sub_field&#39;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;</content>
+        <category term="数据库" scheme="https://qiaoxingrui.github.io/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/" />
+        <category term="mysql" scheme="https://qiaoxingrui.github.io/tags/mysql/" />
+        <updated>2022-04-24T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2022/04/22/docker%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</id>
+        <title>docker常用命令</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2022/04/22/docker%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/"/>
+        <content type="html">&lt;h3 id=&#34;删除所有none的镜像&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#删除所有none的镜像&#34;&gt;#&lt;/a&gt; 删除所有 none 的镜像&lt;/h3&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;docker&lt;/span&gt; images &lt;span class=&#34;token function&#34;&gt;grep&lt;/span&gt; none &lt;span class=&#34;token function&#34;&gt;awk&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#39;&amp;#123;print $3&amp;#125;&#39;&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;xargs&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;docker&lt;/span&gt; rmi&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h3 id=&#34;启动所有exited的容器&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#启动所有exited的容器&#34;&gt;#&lt;/a&gt; 启动所有 Exited 的容器&lt;/h3&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;docker&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;ps&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-a&lt;/span&gt;  &lt;span class=&#34;token function&#34;&gt;grep&lt;/span&gt; Exited &lt;span class=&#34;token function&#34;&gt;awk&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#39;&amp;#123;print $1&amp;#125;&#39;&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;xargs&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;docker&lt;/span&gt; start&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;</content>
+        <category term="docker" scheme="https://qiaoxingrui.github.io/categories/docker/" />
+        <category term="常用命令" scheme="https://qiaoxingrui.github.io/tags/%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" />
+        <updated>2022-04-22T06:17:15.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2022/04/19/mongodb%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</id>
+        <title>MongoDB常用指令</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2022/04/19/mongodb%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/"/>
+        <content type="html">&lt;h3 id=&#34;mongodb更新数据&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#mongodb更新数据&#34;&gt;#&lt;/a&gt; MongoDB 更新数据&lt;/h3&gt;
+&lt;figure class=&#34;highlight mongodb&#34;&gt;&lt;figcaption data-lang=&#34;mongodb&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;db&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;user_action_log&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;token function&#34;&gt;updateMany&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;       &lt;span class=&#34;token string-property property&#34;&gt;&#34;isNew&#34;&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;token number&#34;&gt;1&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt; &lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;5&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;    &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt; &lt;span class=&#34;token string-property property&#34;&gt;&#34;$set&#34;&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt; &lt;span class=&#34;token string-property property&#34;&gt;&#34;isNew&#34;&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;token keyword&#34;&gt;null&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;6&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h3 id=&#34;批量删除字段&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#批量删除字段&#34;&gt;#&lt;/a&gt; 批量删除字段&lt;/h3&gt;
+&lt;figure class=&#34;highlight mongodb&#34;&gt;&lt;figcaption data-lang=&#34;mongodb&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;db&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;collection_name&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;token function&#34;&gt;update&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;span class=&#34;token string-property property&#34;&gt;&#34;target_field&#34;&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;span class=&#34;token string-property property&#34;&gt;&#34;$exists&#34;&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;token boolean&#34;&gt;true&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;span class=&#34;token string-property property&#34;&gt;&#34;$unset&#34;&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;span class=&#34;token string-property property&#34;&gt;&#34;target_field&#34;&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;token number&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;span class=&#34;token property&#34;&gt;multi&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;token boolean&#34;&gt;true&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h3 id=&#34;字段改名&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#字段改名&#34;&gt;#&lt;/a&gt; 字段改名&lt;/h3&gt;
+&lt;figure class=&#34;highlight mongodb&#34;&gt;&lt;figcaption data-lang=&#34;mongodb&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;db&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;collection_name&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;token function&#34;&gt;update&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;filter&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;span class=&#34;token property&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;$rename&lt;/span&gt;&lt;/span&gt; &lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;span class=&#34;token string-property property&#34;&gt;&#34;source_field&#34;&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#34;target_field&#34;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;span class=&#34;token string-property property&#34;&gt;&#34;multi&#34;&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;token number&#34;&gt;1&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;</content>
+        <category term="数据库" scheme="https://qiaoxingrui.github.io/categories/%E6%95%B0%E6%8D%AE%E5%BA%93/" />
+        <category term="mongodb" scheme="https://qiaoxingrui.github.io/tags/mongodb/" />
+        <updated>2022-04-19T03:01:39.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2022/04/19/JS%E7%AE%AD%E5%A4%B4%E5%87%BD%E6%95%B0/</id>
+        <title>JS箭头函数</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2022/04/19/JS%E7%AE%AD%E5%A4%B4%E5%87%BD%E6%95%B0/"/>
+        <content type="html">&lt;h2 id=&#34;es6中的let关键字和val关键字声明变量的区别&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#es6中的let关键字和val关键字声明变量的区别&#34;&gt;#&lt;/a&gt; ES6 中的 let 关键字和 val 关键字声明变量的区别&lt;/h2&gt;
+&lt;p&gt;var 关键字是原生 JS 中声明变量的关键字，let 关键字是 ES6 语法中新增关键字&lt;br /&gt;
+ let 关键字声明的变量不能重复声明，var 关键字可以重复声明变量&lt;br /&gt;
+ let 关键字解析变量没有预解析，var 关键字声明的变量包含预解析过程&lt;br /&gt;
+ let 关键字提供了块级作用域，var 关键字没有块级作用域，只有局部、全局作用域&lt;/p&gt;
+&lt;h2 id=&#34;javascript中箭头函数与普通函数的区别详解&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#javascript中箭头函数与普通函数的区别详解&#34;&gt;#&lt;/a&gt; JavaScript 中箭头函数与普通函数的区别详解&lt;/h2&gt;
+&lt;p&gt;箭头函数：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;let fun = () =&amp;gt; &amp;#123;    console.log(&#39;lalalala&#39;);&amp;#125;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;普通函数：&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;function fun() &amp;#123;
+    console.log(&#39;lalla&#39;);
+&amp;#125;
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;箭头函数相当于匿名函数，并且简化了函数定义。箭头函数有两种格式，一种只包含一个表达式，连 {...} 和 return 都省略掉了。还有一种可以包含多条语句，这时候就不能省略 { ... } 和 return。&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;箭头函数是匿名函数，不能作为构造函数，不能使用 new&lt;/strong&gt;&lt;/p&gt;
+&lt;p&gt;&lt;strong&gt;箭头函数不绑定 arguments，取而代之用 rest 参数... 解决&lt;/strong&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;function A(a)&amp;#123;
+  console.log(arguments);
+&amp;#125;
+A(1,2,3,4,5,8);  //  [1, 2, 3, 4, 5, 8, callee: ƒ, Symbol(Symbol.iterator): ƒ]
+
+
+let B = (b)=&amp;gt;&amp;#123;
+  console.log(arguments);
+&amp;#125;
+B(2,92,32,32);   // Uncaught ReferenceError: arguments is not defined
+
+
+let C = (...c) =&amp;gt; &amp;#123;
+  console.log(c);
+&amp;#125;
+C(3,82,32,11323);  // [3, 82, 32, 11323]
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;&lt;strong&gt;箭头函数不绑定 this，会捕获其所在的上下文的 this 值，作为自己的 this 值&lt;/strong&gt;&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;var obj = &amp;#123;
+  a: 10,
+  b: () =&amp;gt; &amp;#123;
+    console.log(this.a); // undefined
+    console.log(this); // Window &amp;#123;postMessage: ƒ, blur: ƒ, focus: ƒ, close: ƒ, frames: Window, …&amp;#125;
+  &amp;#125;,
+  c: function() &amp;#123;
+    console.log(this.a); // 10
+    console.log(this); // &amp;#123;a: 10, b: ƒ, c: ƒ&amp;#125;
+  &amp;#125;
+&amp;#125;
+obj.b(); 
+obj.c();
+
+var obj = &amp;#123;
+  a: 10,
+  b: function()&amp;#123;
+    console.log(this.a); //10
+  &amp;#125;,
+  c: function() &amp;#123;
+     return ()=&amp;gt;&amp;#123;
+           console.log(this.a); //10
+     &amp;#125;
+  &amp;#125;
+&amp;#125;
+obj.b(); 
+obj.c()();
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;箭头函数通过&lt;strong&gt; call ()&lt;strong&gt; 或&lt;/strong&gt; apply ()&lt;strong&gt; 方法调用一个函数时，只传入了一个参数，对&lt;/strong&gt; this&lt;/strong&gt; 并没有影响。&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;let obj2 = &amp;#123;
+    a: 10,
+    b: function(n) &amp;#123;
+        let f = (n) =&amp;gt; n + this.a;
+        return f(n);
+    &amp;#125;,
+    c: function(n) &amp;#123;
+        let f = (n) =&amp;gt; n + this.a;
+        let m = &amp;#123;
+            a: 20
+        &amp;#125;;
+        return f.call(m,n);
+    &amp;#125;
+&amp;#125;;
+console.log(obj2.b(1));  // 11
+console.log(obj2.c(1)); // 11
+&lt;/code&gt;&lt;/pre&gt;
+&lt;p&gt;箭头函数没有原型属性&lt;/p&gt;
+&lt;pre&gt;&lt;code&gt;var a = ()=&amp;gt;&amp;#123;
+  return 1;
+&amp;#125;
+ 
+function b()&amp;#123;
+  return 2;
+&amp;#125;
+ 
+console.log(a.prototype);  // undefined
+console.log(b.prototype);   // &amp;#123;constructor: ƒ&amp;#125;
+&lt;/code&gt;&lt;/pre&gt;
+</content>
+        <category term="js" scheme="https://qiaoxingrui.github.io/categories/js/" />
+        <updated>2022-04-19T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2022/04/19/inherit%E3%80%81table-layout%E4%B8%80%E4%BA%9B%E7%90%86%E8%A7%A3/</id>
+        <title>inherit、table-layout一些理解</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2022/04/19/inherit%E3%80%81table-layout%E4%B8%80%E4%BA%9B%E7%90%86%E8%A7%A3/"/>
+        <content type="html">&lt;h2 id=&#34;inherit-属性&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#inherit-属性&#34;&gt;#&lt;/a&gt; inherit 属性&lt;/h2&gt;
+&lt;p&gt;在 CSS 中，子元素会继承了父元素的一些样式属性。能够继承到子类的样式属性非常有限，仅是 &lt;code&gt;文字、字体&lt;/code&gt; 、 &lt;code&gt;颜色&lt;/code&gt; ... 子类如果还想继承父类的属性，可以通过 &lt;code&gt;inherit&lt;/code&gt;  强制继承。&lt;/p&gt;
+&lt;h2 id=&#34;table-layout&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#table-layout&#34;&gt;#&lt;/a&gt; table-layout&lt;/h2&gt;
+&lt;h4 id=&#34;定义和用法&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#定义和用法&#34;&gt;#&lt;/a&gt; 定义和用法&lt;/h4&gt;
+&lt;p&gt;tableLayout 属性用来显示表格单元格、行、列的算法规则。&lt;/p&gt;
+&lt;h4 id=&#34;固定表格布局&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#固定表格布局&#34;&gt;#&lt;/a&gt; 固定表格布局：&lt;/h4&gt;
+&lt;p&gt;固定表格布局与自动表格布局相比，允许浏览器更快地对表格进行布局。&lt;/p&gt;
+&lt;p&gt;在固定表格布局中，水平布局仅取决于表格宽度、列宽度、表格边框宽度、单元格间距，而与单元格的内容无关。&lt;/p&gt;
+&lt;p&gt;通过使用固定表格布局，用户代理在接收到第一行后就可以显示表格。&lt;/p&gt;
+&lt;h4 id=&#34;自动表格布局&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#自动表格布局&#34;&gt;#&lt;/a&gt; 自动表格布局：&lt;/h4&gt;
+&lt;p&gt;在自动表格布局中，列的宽度是由列单元格中没有折行的最宽的内容设定的。&lt;/p&gt;
+&lt;p&gt;此算法有时会较慢，这是由于它需要在确定最终的布局之前访问表格中所有的内容。&lt;/p&gt;
+</content>
+        <category term="CSS" scheme="https://qiaoxingrui.github.io/categories/css/" />
+        <updated>2022-04-19T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2022/04/19/vue%E9%9D%A2%E8%AF%95/</id>
+        <title>Vue面试题</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2022/04/19/vue%E9%9D%A2%E8%AF%95/"/>
+        <content type="html">&lt;h2 id=&#34;vue中created与mounted区别&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#vue中created与mounted区别&#34;&gt;#&lt;/a&gt; vue 中 created 与 mounted 区别&lt;/h2&gt;
+&lt;p&gt;在 created 阶段，实例已经被初始化，但是还没有挂载至 el 上，所以我们无法获取到对应的节点，但是此时我们是可以获取到 vue 中 data 与 methods 中的数据的；&lt;br /&gt;
+在 mounted 阶段，vue 的 template 成功挂载在 $el 中，此时一个完整的页面已经能够显示在浏览器中，所以在这个阶段，可以调用节点了；&lt;/p&gt;
+&lt;h2 id=&#34;nexttick的理解&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#nexttick的理解&#34;&gt;#&lt;/a&gt; $nextTick 的理解&lt;/h2&gt;
+&lt;p&gt;用法：&lt;br /&gt;
+在下次 DOM 更新循环结束之后执行延迟回调。在修改数据之后立即使用这个方法，获取更新后的 DOM。&lt;br /&gt;
+为什么？&lt;br /&gt;
+Vue 实现响应式并不是数据发生变化之后 DOM 立即变化，而是按一定的策略进行 DOM 的更新。Vue 在更新 DOM 时是异步执行的。只要侦听到数据变化，Vue 将开启一个队列，并缓冲在同一事件循环中发生的所有数据变更。如果同一个 watcher 被多次触发，只会被推入到队列中一次。这种在缓冲时去除重复数据对于避免不必要的计算和 DOM 操作是非常重要的。然后，在下一个的事件循环 “tick” 中，Vue 刷新队列并执行实际 (已去重的) 工作。&lt;br /&gt;
+所以为了在数据变化之后等待 Vue 完成更新 DOM，可以在数据变化之后立即使用 Vue.nextTick (callback)。这样回调函数将在 DOM 更新完成后被调用。&lt;br /&gt;
+使用场景&lt;br /&gt;
+在你更新完数据后，需要及时操作渲染好的 DOM 时&lt;/p&gt;
+&lt;h2 id=&#34;vmsetobj-key-val-做了什么&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#vmsetobj-key-val-做了什么&#34;&gt;#&lt;/a&gt; vm.$set (obj, key, val) 做了什么？&lt;/h2&gt;
+&lt;p&gt;由于 Vue 无法探测对象新增属性或者通过索引为数组新增一个元素，所以这才有了 vm.s e t ， 它 是 V u e . s e t 的 别 名 。 v m . set，它是 Vue.set 的别名。 vm.set，它是 Vue.set 的别名。vm.set 用于向响应式对象添加一个新的 property，并确保这个新的 property 同样是响应式的，并触发视图更新。&lt;/p&gt;
+&lt;p&gt;为对象添加一个新的响应式数据：调用 defineReactive 方法为对象增加响应式数据，然后执行 dep.notify 进行依赖通知，更新视图&lt;br /&gt;
+为数组添加一个新的响应式数据：通过 splice 方法实现&lt;/p&gt;
+&lt;h2 id=&#34;vue的自定义指令&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#vue的自定义指令&#34;&gt;#&lt;/a&gt; vue 的自定义指令&lt;/h2&gt;
+&lt;p&gt;Vue 除了核心功能默认内置的指令 ，Vue 也允许注册自定义指令。&lt;br /&gt;
+自定义指令是用来操作 DOM 的。尽管 Vue 推崇数据驱动视图的理念，但并非所有情况都适合数据驱动。自定义指令就是一种有效的补充和扩展，不仅可用于定义任何的 DOM 操作，并且是可复用的。&lt;/p&gt;
+&lt;p&gt;添加自定义指令的两种方式：&lt;/p&gt;
+&lt;p&gt;全局指令： 通过 Vue.directive () 函数注册一个全局的指令。&lt;br /&gt;
+局部指令：通过组件的 directives 属性，对该组件添加一个局部的指令。&lt;/p&gt;
+&lt;h2 id=&#34;vue的生命周期的理解&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#vue的生命周期的理解&#34;&gt;#&lt;/a&gt; vue 的生命周期的理解&lt;/h2&gt;
+&lt;p&gt;beforecreate （初始化界面前）&lt;br /&gt;
+created （初始化界面后）&lt;br /&gt;
+beforemount （渲染界面前）&lt;br /&gt;
+mounted （渲染界面后）&lt;br /&gt;
+beforeUpdate （更新数据前）&lt;br /&gt;
+updated （更新数据后）&lt;br /&gt;
+beforedestory （卸载组件前）&lt;br /&gt;
+destroyed （卸载组件后）&lt;/p&gt;
+&lt;h2 id=&#34;vue组件通信有哪些方式&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#vue组件通信有哪些方式&#34;&gt;#&lt;/a&gt; Vue 组件通信有哪些方式&lt;/h2&gt;
+&lt;p&gt;1. 父传子：props&lt;br /&gt;
+ 父组件通过 props 向下传递数据给子组件。注：组件中的数据共有三种形式：data、props、computed&lt;/p&gt;
+&lt;p&gt;2. 父传子孙：provide 和 inject&lt;br /&gt;
+ 父组件定义 provide 方法 return 需要分享给子孙组件的属性，子孙组件使用 inject 选项来接收指定的我们想要添加在这个实例上的 属性；&lt;/p&gt;
+&lt;p&gt;3. 子传父：通过事件形式&lt;br /&gt;
+子组件通过 $emit () 给父组件发送消息，父组件通过 v-on 绑定事件接收数据。&lt;/p&gt;
+&lt;p&gt;4. 父子、兄弟、跨级：eventBus.js&lt;br /&gt;
+ 这种方法通过一个空的 Vue 实例作为中央事件总线（事件中心）, 用它来（e m i t ） 触 发 事 件 和 （ emit）触发事件和（emit）触发事件和（on）监听事件，巧妙而轻量地实现了任何组件间的通信。&lt;/p&gt;
+&lt;p&gt;5. 通信插件：PubSub.js&lt;/p&gt;
+&lt;p&gt;6.vuex&lt;br /&gt;
+vuex 是 vue 的状态管理器，存储的数据是响应式的。只需要把共享的值放到 vuex 中，其他需要的组件直接获取使用即可；&lt;/p&gt;
+&lt;h2 id=&#34;router和route的区别&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#router和route的区别&#34;&gt;#&lt;/a&gt; router 和 route 的区别&lt;/h2&gt;
+&lt;p&gt;router 为 VueRouter 的实例，相当于一个全局的路由器对象，里面含有很多属性和子对象，例如 history 对象。。。经常用的跳转链接就可以用 this.$router.push，和 router-link 跳转一样。&lt;/p&gt;
+&lt;p&gt;route 相当于当前正在跳转的路由对象。。可以从里面获取 name,path,params,query 等&lt;/p&gt;
+&lt;h2 id=&#34;vue-router有几种钩子函数&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#vue-router有几种钩子函数&#34;&gt;#&lt;/a&gt; vue-router 有几种钩子函数？&lt;/h2&gt;
+&lt;p&gt;1. 全局路由&lt;br /&gt;
+全局导航钩子主要有两种钩子：前置守卫 (beforeEach)、后置钩子 (afterEach)&lt;br /&gt;
+ 2. 路由独享的钩子&lt;br /&gt;
+单个路由独享的导航钩子，它是在路由配置上直接进行定义的&lt;/p&gt;
+&lt;figure class=&#34;highlight js&#34;&gt;&lt;figcaption data-lang=&#34;JavaScript&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token literal-property property&#34;&gt;routes&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;[&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;         &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;            &lt;span class=&#34;token literal-property property&#34;&gt;path&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;token string&#34;&gt;&#39;/file&#39;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;            &lt;span class=&#34;token literal-property property&#34;&gt;component&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt; File&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;5&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;            &lt;span class=&#34;token function-variable function&#34;&gt;beforeEnter&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token parameter&#34;&gt;to&lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt; from &lt;span class=&#34;token punctuation&#34;&gt;,&lt;/span&gt;next&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt; &lt;span class=&#34;token operator&#34;&gt;=&gt;&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt; &lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;6&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;             &lt;span class=&#34;token comment&#34;&gt;//do something&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;7&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;            &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;8&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;         &lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;9&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;        &lt;span class=&#34;token punctuation&#34;&gt;]&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h2 id=&#34;vue-router路由跳转方式&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#vue-router路由跳转方式&#34;&gt;#&lt;/a&gt; vue-router 路由跳转方式&lt;/h2&gt;
+&lt;p&gt;声明式（标签跳转）&lt;/p&gt;
+&lt;figure class=&#34;highlight html&#34;&gt;&lt;figcaption data-lang=&#34;HTML&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token tag&#34;&gt;&lt;span class=&#34;token tag&#34;&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;lt;&lt;/span&gt;router-link&lt;/span&gt; &lt;span class=&#34;token attr-name&#34;&gt;:to&lt;/span&gt;&lt;span class=&#34;token attr-value&#34;&gt;&lt;span class=&#34;token punctuation attr-equals&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&#34;&lt;/span&gt;&amp;#123;name:&#39;home&#39;&amp;#125;&lt;span class=&#34;token punctuation&#34;&gt;&#34;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token tag&#34;&gt;&lt;span class=&#34;token tag&#34;&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;lt;/&lt;/span&gt;router-link&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&gt;&lt;/span&gt;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token tag&#34;&gt;&lt;span class=&#34;token tag&#34;&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;lt;&lt;/span&gt;router-link&lt;/span&gt; &lt;span class=&#34;token attr-name&#34;&gt;:to&lt;/span&gt;&lt;span class=&#34;token attr-value&#34;&gt;&lt;span class=&#34;token punctuation attr-equals&#34;&gt;=&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&#34;&lt;/span&gt;&amp;#123;path:&#39;/home&#39;&amp;#125;&lt;span class=&#34;token punctuation&#34;&gt;&#34;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&gt;&lt;/span&gt;&lt;/span&gt;&lt;span class=&#34;token tag&#34;&gt;&lt;span class=&#34;token tag&#34;&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;lt;/&lt;/span&gt;router-link&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&gt;&lt;/span&gt;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;p&gt;编程式（ js 跳转）&lt;/p&gt;
+&lt;figure class=&#34;highlight js&#34;&gt;&lt;figcaption data-lang=&#34;JavaScript&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token keyword&#34;&gt;this&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;$router&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;token function&#34;&gt;push&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#39;/home&#39;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token keyword&#34;&gt;this&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;$router&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;token function&#34;&gt;push&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;span class=&#34;token literal-property property&#34;&gt;name&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#39;home&#39;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token keyword&#34;&gt;this&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;$router&lt;span class=&#34;token punctuation&#34;&gt;.&lt;/span&gt;&lt;span class=&#34;token function&#34;&gt;push&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;(&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;span class=&#34;token literal-property property&#34;&gt;path&lt;/span&gt;&lt;span class=&#34;token operator&#34;&gt;:&lt;/span&gt;&lt;span class=&#34;token string&#34;&gt;&#39;/home&#39;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;)&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;&lt;h2 id=&#34;keep-alive&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#keep-alive&#34;&gt;#&lt;/a&gt; keep-alive&lt;/h2&gt;
+&lt;p&gt;&amp;lt;keep-alive&amp;gt; 是 Vue 的内置组件，能在组件切换过程中将状态保留在内存中，防止重复渲染 DOM。&lt;/p&gt;
+&lt;p&gt;&amp;lt;keep-alive&amp;gt; 包裹动态组件时，会缓存不活动的组件实例，而不是销毁它们。&lt;/p&gt;
+&lt;h2 id=&#34;vuex是什么怎么使用&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#vuex是什么怎么使用&#34;&gt;#&lt;/a&gt; Vuex 是什么？怎么使用？&lt;/h2&gt;
+&lt;p&gt;Vuex 是实现组件全局状态（数据）管理的一种机制，可以方便实现组件数据之间的共享；Vuex 集中管理共享的数据，易于开发和后期维护；能够高效的实现组件之间的数据共享，提高开发效率；存储在 Vuex 的数据是响应式的，能够实时保持页面和数据的同步；&lt;br /&gt;
+Vuex 重要核心属性包括：state,mutations,action,getters,modules.&lt;/p&gt;
+&lt;p&gt;state&lt;br /&gt;
+Vuex 使用单一状态树，即每个应用将仅仅包含一个 store 实例，但单一状态树和模块化并不冲突。存放的数据状态，不可以直接修改里面的数据。&lt;/p&gt;
+&lt;p&gt;mutations&lt;br /&gt;
+mutations 定义的方法动态修改 Vuex 的 store 中的状态或数据。&lt;/p&gt;
+&lt;p&gt;action&lt;br /&gt;
+actions 可以理解为通过将 mutations 里面处里数据的方法变成可异步的处理数据的方法，简单的说就是异步操作数据。view 层通过 store.dispath 来分发 action。&lt;/p&gt;
+&lt;p&gt;getters&lt;br /&gt;
+ 类似 vue 的计算属性，主要用来过滤一些数据。&lt;/p&gt;
+&lt;p&gt;modules&lt;br /&gt;
+ 项目特别复杂的时候，可以让每一个模块拥有自己的 state、mutation、action、getters, 使得结构非常清晰，方便管理。&lt;/p&gt;
+&lt;h2 id=&#34;什么情况下使用-vuex&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#什么情况下使用-vuex&#34;&gt;#&lt;/a&gt; 什么情况下使用 Vuex？&lt;/h2&gt;
+&lt;p&gt;如果应用够简单，最好不要使用 Vuex，一个简单的 store 模式即可；&lt;br /&gt;
+需要构建一个中大型单页应用时，使用 Vuex 能更好地在组件外部管理状态；&lt;/p&gt;
+&lt;h2 id=&#34;vuex和单纯的全局对象有什么区别&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#vuex和单纯的全局对象有什么区别&#34;&gt;#&lt;/a&gt; Vuex 和单纯的全局对象有什么区别？&lt;/h2&gt;
+&lt;p&gt;Vuex 的状态存储是响应式的。当 Vue 组件从 store 中读取状态的时候，若 store 中的状态发生变化，那么相应的组件也会相应地得到高效更新。&lt;br /&gt;
+不能直接改变 store 中的状态。改变 store 中的状态的唯一途径就是显式地提交 (commit) mutation。这样使得我们可以方便地跟踪每一个状态的变化，从而让我们能够实现一些工具帮助我们更好地了解我们的应用。&lt;/p&gt;
+&lt;h2 id=&#34;为什么-vuex-的-mutation-中不能做异步操作&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#为什么-vuex-的-mutation-中不能做异步操作&#34;&gt;#&lt;/a&gt; 为什么 Vuex 的 mutation 中不能做异步操作？&lt;/h2&gt;
+&lt;p&gt;每个 mutation 执行完成后都会对应到一个新的状态变更，这样 devtools 就可以打个快照存下来，然后就可以实现 time-travel 了。如果 mutation 支持异步操作，就没有办法知道状态是何时更新的，无法很好的进行状态的追踪，给调试带来困难。&lt;/p&gt;
+&lt;h2 id=&#34;ssr有了解吗它主要解决什么问题&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#ssr有了解吗它主要解决什么问题&#34;&gt;#&lt;/a&gt; SSR 有了解吗，它主要解决什么问题？&lt;/h2&gt;
+&lt;p&gt;解决了以下两个问题：&lt;/p&gt;
+&lt;p&gt;seo：搜索引擎优先爬取页面 HTML 结构，使用 ssr 时，服务端已经生成了和业务想关联的 HTML，有利于 seo&lt;br /&gt;
+ 首屏呈现渲染：用户无需等待页面所有 js 加载完成就可以看到页面视图（压力来到了服务器，所以需要权衡哪些用服务端渲染，哪些交给客户端）&lt;br /&gt;
+缺点&lt;/p&gt;
+&lt;p&gt;复杂度：整个项目的复杂度&lt;br /&gt;
+性能会受到影响&lt;br /&gt;
+服务器负载变大，相对于前后端分离务器只需要提供静态资源来说，服务器负载更大，所以要慎重使用&lt;/p&gt;
+&lt;h2 id=&#34;做过哪些vue的性能优化&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#做过哪些vue的性能优化&#34;&gt;#&lt;/a&gt; 做过哪些 Vue 的性能优化？&lt;/h2&gt;
+&lt;p&gt;编码阶段&lt;/p&gt;
+&lt;p&gt;尽量减少 data 中的数据，data 中的数据都会增加 getter 和 setter，会收集对应的 watcher&lt;br /&gt;
+v-if 和 v-for 不能连用&lt;br /&gt;
+如果需要使用 v-for 给每项元素绑定事件时使用事件代理&lt;br /&gt;
+ SPA 页面采用 keep-alive 缓存组件&lt;br /&gt;
+在更多的情况下，使用 v-if 替代 v-show&lt;br /&gt;
+key 保证唯一&lt;br /&gt;
+使用路由懒加载、异步组件&lt;br /&gt;
+防抖、节流&lt;br /&gt;
+第三方模块按需导入&lt;br /&gt;
+长列表滚动到可视区域动态加载&lt;br /&gt;
+图片懒加载&lt;br /&gt;
+ SEO 优化&lt;/p&gt;
+&lt;p&gt;服务端渲染 SSR&lt;br /&gt;
+ 预渲染&lt;br /&gt;
+打包优化&lt;/p&gt;
+&lt;p&gt;压缩代码&lt;br /&gt;
+ Tree Shaking/Scope Hoisting&lt;br /&gt;
+ 使用 cdn 加载第三方模块&lt;br /&gt;
+多线程打包 happypack&lt;br /&gt;
+splitChunks 抽离公共文件&lt;br /&gt;
+ sourceMap 优化&lt;/p&gt;
+</content>
+        <category term="vue" scheme="https://qiaoxingrui.github.io/categories/vue/" />
+        <category term="面试题" scheme="https://qiaoxingrui.github.io/tags/%E9%9D%A2%E8%AF%95%E9%A2%98/" />
+        <updated>2022-04-19T00:00:00.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2021/11/19/nginx%E9%83%A8%E7%BD%B2vue%E5%88%B7%E6%96%B0%E9%A1%B5%E9%9D%A2404/</id>
+        <title>nginx部署vue刷新页面404</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2021/11/19/nginx%E9%83%A8%E7%BD%B2vue%E5%88%B7%E6%96%B0%E9%A1%B5%E9%9D%A2404/"/>
+        <content type="html">&lt;p&gt;location 中增加一下内容&lt;/p&gt;
+&lt;figure class=&#34;highlight nginx&#34;&gt;&lt;figcaption data-lang=&#34;nginx&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;location&lt;/span&gt; /&lt;/span&gt; &lt;span class=&#34;token punctuation&#34;&gt;&amp;#123;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;2&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;3&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;  &lt;span class=&#34;token directive&#34;&gt;&lt;span class=&#34;token keyword&#34;&gt;try_files&lt;/span&gt; &lt;span class=&#34;token variable&#34;&gt;$uri&lt;/span&gt; &lt;span class=&#34;token variable&#34;&gt;$uri&lt;/span&gt;/ /index.html&lt;/span&gt;&lt;span class=&#34;token punctuation&#34;&gt;;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;4&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;tr&gt;&lt;td data-num=&#34;5&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token punctuation&#34;&gt;&amp;#125;&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;</content>
+        <category term="Nginx" scheme="https://qiaoxingrui.github.io/categories/nginx/" />
+        <category term="问题解决" scheme="https://qiaoxingrui.github.io/tags/%E9%97%AE%E9%A2%98%E8%A7%A3%E5%86%B3/" />
+        <updated>2021-11-19T03:04:39.000Z</updated>
+    </entry>
+    <entry>
+        <id>https://qiaoxingrui.github.io/2021/11/12/linux%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/</id>
+        <title>linux常用命令</title>
+        <link rel="alternate" href="https://qiaoxingrui.github.io/2021/11/12/linux%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/"/>
+        <content type="html">&lt;h3 id=&#34;linux查看当前目录下文件大小&#34;&gt;&lt;a class=&#34;anchor&#34; href=&#34;#linux查看当前目录下文件大小&#34;&gt;#&lt;/a&gt; linux 查看当前目录下文件大小&lt;/h3&gt;
+&lt;figure class=&#34;highlight bash&#34;&gt;&lt;figcaption data-lang=&#34;bash&#34;&gt;&lt;/figcaption&gt;&lt;table&gt;&lt;tr&gt;&lt;td data-num=&#34;1&#34;&gt;&lt;/td&gt;&lt;td&gt;&lt;pre&gt;&lt;span class=&#34;token function&#34;&gt;sudo&lt;/span&gt; &lt;span class=&#34;token function&#34;&gt;du&lt;/span&gt; &lt;span class=&#34;token parameter variable&#34;&gt;-sh&lt;/span&gt;&lt;/pre&gt;&lt;/td&gt;&lt;/tr&gt;&lt;/table&gt;&lt;/figure&gt;</content>
+        <category term="linux" scheme="https://qiaoxingrui.github.io/categories/linux/" />
+        <category term="常用命令" scheme="https://qiaoxingrui.github.io/tags/%E5%B8%B8%E7%94%A8%E5%91%BD%E4%BB%A4/" />
+        <updated>2021-11-12T05:27:53.000Z</updated>
+    </entry>
+</feed>
